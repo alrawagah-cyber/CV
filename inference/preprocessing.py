@@ -24,7 +24,7 @@ def load_image(source: str | Path | np.ndarray | bytes) -> np.ndarray:
         if arr.shape[-1] == 4:
             arr = arr[..., :3]
         return arr.astype(np.uint8, copy=False)
-    if isinstance(source, (bytes, bytearray)):
+    if isinstance(source, bytes | bytearray):
         import io
 
         img = Image.open(io.BytesIO(source)).convert("RGB")

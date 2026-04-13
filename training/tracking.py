@@ -81,7 +81,7 @@ class MLflowTracker(Tracker):
 
 
 def _is_scalar(v: Any) -> bool:
-    return isinstance(v, (int, float, str, bool))
+    return isinstance(v, int | float | str | bool)
 
 
 def build_tracker(cfg: dict[str, Any] | None, run_name: str, full_config: dict[str, Any]) -> Tracker:

@@ -305,7 +305,7 @@ class ClaimAssessor:
 
 
 def _derive_image_id(src: Any, img: np.ndarray) -> str:
-    if isinstance(src, (str, Path)):
+    if isinstance(src, str | Path):
         return Path(str(src)).name
     h = hashlib.sha1(img.tobytes()[:4096]).hexdigest()[:12]
     return f"image_{h}"
