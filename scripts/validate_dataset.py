@@ -140,16 +140,27 @@ def validate_layer3(root: Path, csv_path: Path) -> list[str]:
         errors.append(f"Missing columns: {missing}")
         return errors
 
-    valid_parts = set(DEFAULT_PART_CLASSES)
-    valid_damage = set(DEFAULT_DAMAGE_CLASSES)
+    # "unknown" is an allowed placeholder for bootstrap data (e.g. from the
+    # Roboflow L3 ingestor). The L3 model does not consume part/damage_type
+    # as inputs — they are metadata — so unknown values do not affect training.
+    valid_parts = set(DEFAULT_PART_CLASSES) | {"unknown"}
+    valid_damage = set(DEFAULT_DAMAGE_CLASSES) | {"unknown"}
 
     for i, row in df.iterrows():
         sev = int(row["severity"])
         if not (0 <= sev < len(grades)):
             errors.append(f"{csv_path}:{i+2} severity {sev} out of range [0,{len(grades)-1}]")
-        rr = int(row["repair_or_replace"])
-        if rr not in (0, 1):
-            errors.append(f"{csv_path}:{i+2} repair_or_replace {rr} not in {{0,1}}")
+        rr_raw = row["repair_or_replace"]
+        if rr_raw == "" or pd.isna(rr_raw):
+            errors.append(f"{csv_path}:{i+2} repair_or_replace is blank — fill before training")
+        else:
+            try:
+                rr = int(rr_raw)
+            except (ValueError, TypeError):
+                errors.append(f"{csv_path}:{i+2} repair_or_replace {rr_raw!r} not an integer")
+                continue
+            if rr not in (0, 1):
+                errors.append(f"{csv_path}:{i+2} repair_or_replace {rr} not in {{0,1}}")
         if str(row["part"]) not in valid_parts:
             errors.append(f"{csv_path}:{i+2} unknown part {row['part']!r}")
         if str(row["damage_type"]) not in valid_damage:

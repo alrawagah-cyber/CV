@@ -147,6 +147,61 @@ Open the manifest CSV in Label Studio or a spreadsheet, annotate, then split int
 
 > **L2/L3 data caveat.** Roboflow part-detection datasets do **not** provide damage-type or severity labels. You'll need a damage-annotated source (e.g. CarDD, Roboflow "car damage" projects, or your own insurance claim photos) to label what comes out of `extract_crops.py`.
 
+### Layer 2 — ingesting Roboflow damage-detection datasets
+
+Roboflow damage datasets give you bounding boxes around each damaged region with a single damage-type label (e.g. `dent`, `scratch`, `broken_glass`). `scripts/prepare_roboflow_l2_dataset.py` turns every bbox into a cropped image and writes a single-label row in our multi-label CSV — which is a valid special case of multi-label training.
+
+```bash
+# Download each L2 Roboflow project as YOLOv8 zip and unzip to ~/roboflow_l2/<name>/.
+for name in car-damage-zxk33:zxk33 car-damage-wpmh2:wpmh2 car-damage-detection-eyy6t:eyy6t automobile-damage-detection:auto; do
+    dir=${name%:*}; prefix=${name#*:}
+    python scripts/prepare_roboflow_l2_dataset.py \
+        --input ~/roboflow_l2/$dir \
+        --mapping configs/roboflow_mappings/damage_types.yaml \
+        --output data/layer2 \
+        --prefix $prefix \
+        --on-unknown skip
+done
+
+# Validate each split CSV (one per prefix per split):
+python scripts/validate_dataset.py --layer 2 --root data/layer2 --csv data/layer2/zxk33_train.csv
+```
+
+Merge the per-dataset CSVs however suits your splitting strategy (a simple `cat` of the `*_train.csv` files works; or shuffle + stratify with pandas). Keep `<prefix>_valid.csv` files distinct from train so you can hold out an entire source dataset for out-of-distribution validation.
+
+### Layer 3 — ingesting severity datasets
+
+L3 accepts two Roboflow export shapes:
+
+- **Detection** (severity is the bbox class name): each bbox → one crop → one row with that severity.
+- **Classification** (severity is the folder name): each image → one row, no cropping.
+
+```bash
+# Detection-format dataset:
+python scripts/prepare_roboflow_l3_dataset.py \
+    --input ~/roboflow_l3/car-damage-datasets \
+    --mapping configs/roboflow_mappings/severity.yaml \
+    --output data/layer3 \
+    --format detection \
+    --prefix cdd \
+    --on-unknown skip
+
+# Classification-format dataset (Roboflow folders-per-class export):
+python scripts/prepare_roboflow_l3_dataset.py \
+    --input ~/roboflow_l3/car-accident-severity \
+    --mapping configs/roboflow_mappings/severity.yaml \
+    --output data/layer3 \
+    --format classification \
+    --prefix cas \
+    --on-unknown skip
+
+python scripts/validate_dataset.py --layer 3 --root data/layer3 --csv data/layer3/cdd_train.csv
+```
+
+The ingestor fills `part` and `damage_type` with the placeholder `"unknown"`. The L3 model doesn't consume those columns as inputs (they're metadata), so training still works. The `repair_or_replace` column is auto-filled from a severity rule (`severe`/`total_loss` → 1, else 0); pass `--no-rule-repair` to leave it blank for human annotators.
+
+> **L3 data caveat.** Most public "accident severity" datasets score severity at the whole-image (or whole-accident) level, not per damaged part. Our L3 model is designed for part-level crops, so training it on image-level data is a noisy bootstrap — good enough for a working MVP, not a final production model. Plan to either (a) re-annotate a small held-out set at part level for evaluation, or (b) feed proprietary insurance claim data once you have it.
+
 ---
 
 ## Fine-tuning guide

@@ -54,6 +54,42 @@ def test_layer2_detects_bad_value(tmp_path: Path):
     assert any("non-binary" in e for e in errors), errors
 
 
+def test_layer3_accepts_unknown_placeholders(tmp_path: Path):
+    """Bootstrap data from the L3 Roboflow ingestor uses 'unknown' for
+    part + damage_type. The validator must accept these."""
+    bootstrap = tmp_path / "bs.csv"
+    pd.DataFrame(
+        {
+            "image": ["x.jpg"],
+            "part": ["unknown"],
+            "damage_type": ["unknown"],
+            "severity": [2],
+            "repair_or_replace": [1],
+        }
+    ).to_csv(bootstrap, index=False)
+    (tmp_path / "crops").mkdir()
+    errors = validate_layer3(tmp_path, bootstrap)
+    assert errors == []
+
+
+def test_layer3_flags_blank_repair_replace(tmp_path: Path):
+    """If the L3 ingestor was run with --no-rule-repair, the column is blank
+    and the validator must reject until the annotator fills it in."""
+    bad = tmp_path / "bs.csv"
+    pd.DataFrame(
+        {
+            "image": ["x.jpg"],
+            "part": ["unknown"],
+            "damage_type": ["unknown"],
+            "severity": [1],
+            "repair_or_replace": [""],
+        }
+    ).to_csv(bad, index=False)
+    (tmp_path / "crops").mkdir()
+    errors = validate_layer3(tmp_path, bad)
+    assert any("repair_or_replace is blank" in e for e in errors), errors
+
+
 def test_layer3_detects_bad_severity(tmp_path: Path):
     bad = tmp_path / "bad.csv"
     pd.DataFrame(

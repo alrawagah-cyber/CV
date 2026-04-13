@@ -1,0 +1,110 @@
+# ---------------------------------------------------------------------
+# Map Roboflow accident-severity class names to our Layer-3 ordinal grades.
+# Target index (used as 'severity' integer in the Layer-3 CSV):
+#   0 = minor, 1 = moderate, 2 = severe, 3 = total_loss
+# ---------------------------------------------------------------------
+
+target_classes:
+  - minor
+  - moderate
+  - severe
+  - total_loss
+
+mapping:
+  # ---------- canonical ----------
+  minor: minor
+  moderate: moderate
+  severe: severe
+  total_loss: total_loss
+  totalloss: total_loss
+  totaled: total_loss
+  total: total_loss
+  wreck: total_loss
+  wrecked: total_loss
+  write_off: total_loss
+  total_write_off: total_loss
+
+  # ---------- low/med/high scale ----------
+  low: minor
+  low_severity: minor
+  medium: moderate
+  med: moderate
+  medium_severity: moderate
+  high: severe
+  high_severity: severe
+
+  # ---------- light/medium/heavy ----------
+  light: minor
+  heavy: severe
+  heavy_damage: severe
+  light_damage: minor
+
+  # ---------- minor/major ----------
+  major: severe
+  slight: minor
+  mild: minor
+  critical: severe
+  catastrophic: total_loss
+  extreme: total_loss
+
+  # ---------- numeric / tier ----------
+  "0": minor
+  "1": moderate
+  "2": severe
+  "3": total_loss
+  tier_0: minor
+  tier_1: moderate
+  tier_2: severe
+  tier_3: total_loss
+  level_1: minor
+  level_2: moderate
+  level_3: severe
+  level_4: total_loss
+  class_1: minor
+  class_2: moderate
+  class_3: severe
+
+  # ---------- letter grades ----------
+  a: minor
+  b: moderate
+  c: severe
+  d: total_loss
+  grade_a: minor
+  grade_b: moderate
+  grade_c: severe
+  grade_d: total_loss
+
+  # ---------- compound names ----------
+  minor_damage: minor
+  moderate_damage: moderate
+  severe_damage: severe
+  minor_crash: minor
+  moderate_crash: moderate
+  severe_crash: severe
+  minor_accident: minor
+  moderate_accident: moderate
+  severe_accident: severe
+
+  # ---------- accident-detection (binary or detail-level) ----------
+  # Some datasets only label *that* an accident is present, not severity.
+  # Treat generic "accident" as moderate (middle of the scale) so the
+  # ingestor still emits a sample; re-annotate for quality.
+  accident: moderate
+  collision: moderate
+  crash: moderate
+
+skip:
+  - no_damage
+  - nodamage
+  - none
+  - clean
+  - undamaged
+  - intact
+  - background
+  - plate
+  - license_plate
+  - car
+  - vehicle
+  - no_accident
+  - normal
+  - safe

@@ -1,0 +1,149 @@
+# ---------------------------------------------------------------------
+# Map Roboflow damage-detection class names to our Layer-2 vocabulary.
+# Normalization (applied before lookup): lowercased, non-alphanumerics
+# collapsed to underscores. "Glass Shatter" -> "glass_shatter".
+# ---------------------------------------------------------------------
+
+target_classes:
+  - dent
+  - scratch
+  - crack
+  - shatter
+  - tear
+  - deformation
+  - paint_loss
+  - puncture
+  - misalignment
+
+mapping:
+  # ---------- dent ----------
+  dent: dent
+  dents: dent
+  dented: dent
+  body_dent: dent
+  door_dent: dent
+  hood_dent: dent
+  fender_dent: dent
+  minor_dent: dent
+  small_dent: dent
+  large_dent: dent
+  severe_dent: dent
+  medium_dent: dent
+  dent_minor: dent
+  dent_moderate: dent
+  dent_severe: dent
+
+  # ---------- scratch ----------
+  scratch: scratch
+  scratches: scratch
+  scratched: scratch
+  body_scratch: scratch
+  paint_scratch: scratch
+  minor_scratch: scratch
+  deep_scratch: scratch
+  scuff: scratch
+  scuffed: scratch
+
+  # ---------- crack ----------
+  crack: crack
+  cracks: crack
+  cracked: crack
+  body_crack: crack
+  windshield_crack: crack
+  bumper_crack: crack
+  headlight_crack: crack
+  taillight_crack: crack
+  panel_crack: crack
+  lamp_crack: crack
+
+  # ---------- shatter (glass) ----------
+  shatter: shatter
+  shattered: shatter
+  shattered_glass: shatter
+  glass_shatter: shatter
+  glass_shattered: shatter
+  glass_broken: shatter
+  broken_glass: shatter
+  smashed_glass: shatter
+  broken_window: shatter
+  cracked_glass: shatter       # glass cracks nearly always need replacement
+  broken_windshield: shatter
+  broken_headlight: shatter
+  broken_taillight: shatter
+  broken_light: shatter
+  broken_lamp: shatter
+
+  # ---------- tear ----------
+  tear: tear
+  torn: tear
+  rip: tear
+  ripped: tear
+  split: tear
+
+  # ---------- deformation ----------
+  deformation: deformation
+  deformed: deformation
+  bent: deformation
+  bend: deformation
+  warped: deformation
+  crumpled: deformation
+  crushed: deformation
+  smash: deformation
+  smashed: deformation
+  crash: deformation
+  major_crash: deformation
+  major_damage: deformation
+  structural_damage: deformation
+  collision_damage: deformation
+
+  # ---------- paint loss ----------
+  paint_loss: paint_loss
+  paint_damage: paint_loss
+  paint_chip: paint_loss
+  chipped_paint: paint_loss
+  faded_paint: paint_loss
+  peeling_paint: paint_loss
+  paint_peeling: paint_loss
+  paint_fade: paint_loss
+
+  # ---------- puncture ----------
+  puncture: puncture
+  hole: puncture
+  pierced: puncture
+  perforation: puncture
+
+  # ---------- misalignment ----------
+  misalignment: misalignment
+  misaligned: misalignment
+  gap: misalignment
+  displacement: misalignment
+  dislocation: misalignment
+  dislocated: misalignment
+
+  # ---------- Fallback for overly generic classes ----------
+  # Several Roboflow datasets just label everything 'damage' with no finer
+  # type. We map those to 'dent' as a coarse placeholder so training still
+  # runs; consider removing or re-annotating for higher-quality L2 data.
+  damage: dent
+  damaged: dent
+  defect: dent
+  broken: shatter              # common but ambiguous — usually glass
+
+skip:
+  - no_damage
+  - nodamage
+  - clean
+  - undamaged
+  - intact
+  - background
+  - plate
+  - license_plate
+  - number_plate
+  - car
+  - vehicle
+  - body
+  - rust                       # not in our 9-class vocabulary
+  - rusted
+  - corrosion
+  - dirty
+  - mud
