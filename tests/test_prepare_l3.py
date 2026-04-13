@@ -25,6 +25,7 @@ L3_MAPPING = REPO_ROOT / "configs" / "roboflow_mappings" / "severity.yaml"
 # Detection mode
 # --------------------------------------------------------------------------- #
 def _write_detection_export(root: Path, names: list[str], rows: list[tuple[float, ...]]) -> None:
+    root.mkdir(parents=True, exist_ok=True)
     (root / "data.yaml").write_text(yaml.safe_dump({"names": names, "nc": len(names)}))
     (root / "train" / "images").mkdir(parents=True)
     (root / "train" / "labels").mkdir(parents=True)

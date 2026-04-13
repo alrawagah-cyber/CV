@@ -21,6 +21,7 @@ def _write_yolo_export(
     root: Path, names: list[str], rows_per_split: dict[str, list[tuple[float, ...]]]
 ) -> None:
     """Create a minimal Roboflow YOLOv8 export at `root`."""
+    root.mkdir(parents=True, exist_ok=True)
     (root / "data.yaml").write_text(yaml.safe_dump({"names": names, "nc": len(names)}))
     for split, rows in rows_per_split.items():
         (root / split / "images").mkdir(parents=True)
