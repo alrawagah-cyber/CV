@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------
+# Layer 3 — Severity (ordinal) + repair/replace (Swin V2 Large).
+# Run: python training/train_layer3.py --config configs/layer3.yaml
+# ---------------------------------------------------------------------
+
+run_name: layer3-swinv2l-v1
+device: cuda
+seed: 42
+
+model:
+  # Swap to 'vit_large_patch14_dinov2.lvd142m' for DINOv2 ViT-L
+  backbone: swinv2_large_window12to24_192to384.ms_in22k_ft_in1k
+  pretrained: true
+  dropout: 0.2
+  drop_path_rate: 0.1
+  grades:
+    - minor
+    - moderate
+    - severe
+    - total_loss
+
+data:
+  root: data/layer3
+  train_csv: data/layer3/train.csv
+  val_csv: data/layer3/val.csv
+
+augmentation:
+  image_size: 384
+  strength: medium
+
+training:
+  epochs: 30
+  batch_size: 12
+  num_workers: 4
+  lr: 5.0e-5
+  weight_decay: 0.05
+  warmup_ratio: 0.05
+  grad_clip: 1.0
+  amp: true
+  use_ema: true
+  ema_decay: 0.999
+  early_stop_patience: 5
+  repair_loss_weight: 0.5
+
+checkpoint_dir: checkpoints/layer3
+checkpoint_name: layer3_best.pt
+
+tracking:
+  backend: none
+  project: car-damage-pipeline

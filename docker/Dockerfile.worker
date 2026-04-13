@@ -1,0 +1,3 @@
+FROM car-damage-pipeline-base:latest AS worker
+
+CMD ["celery", "-A", "api.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]

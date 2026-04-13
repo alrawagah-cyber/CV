@@ -1,0 +1,65 @@
+# docker-compose stack: API + Celery worker + Redis + Prometheus.
+# Bring up with: docker-compose up --build
+# First start may be slow (pulling model weights + base image).
+
+services:
+  base:
+    # Builds the shared base image; other services depend on this tag.
+    image: car-damage-pipeline-base:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.base
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    depends_on:
+      base:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    image: car-damage-pipeline-api:latest
+    environment:
+      CDP_INFERENCE_CONFIG: /app/configs/inference.yaml
+      CDP_CELERY_BROKER: redis://redis:6379/0
+      CDP_CELERY_BACKEND: redis://redis:6379/1
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  worker:
+    depends_on:
+      base:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    image: car-damage-pipeline-worker:latest
+    environment:
+      CDP_INFERENCE_CONFIG: /app/configs/inference.yaml
+      CDP_CELERY_BROKER: redis://redis:6379/0
+      CDP_CELERY_BACKEND: redis://redis:6379/1
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api

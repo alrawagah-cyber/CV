@@ -1,0 +1,6 @@
+image,part,damage_type,severity,repair_or_replace
+crop_000001.jpg,bumper,dent,1,0
+crop_000002.jpg,windshield,shatter,3,1
+crop_000003.jpg,door,scratch,0,0
+crop_000004.jpg,quarter_panel,deformation,2,1
+crop_000005.jpg,fender,dent,2,1

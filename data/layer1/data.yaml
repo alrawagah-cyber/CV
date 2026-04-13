@@ -1,0 +1,20 @@
+# Ultralytics data file for Layer 1 fine-tuning.
+# Update `train` / `val` to point to disjoint subsets of your dataset.
+path: data/layer1
+train: images
+val: images   # TODO: replace with a separate val split (e.g. images_val)
+nc: 13
+names:
+  - bumper
+  - hood
+  - fender
+  - door
+  - windshield
+  - headlight
+  - taillight
+  - mirror
+  - trunk
+  - roof
+  - quarter_panel
+  - grille
+  - wheel

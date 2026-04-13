@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------
+# Inference configuration consumed by ClaimAssessor and the API service.
+# Leave `weights: null` to use a pretrained backbone only (baseline mode);
+# set a path to a fine-tuned checkpoint to enable real damage classification.
+# ---------------------------------------------------------------------
+
+layer1:
+  version: yolov8x_v1
+  weights: yolov8x.pt      # will be downloaded by ultralytics on first use
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  img_size: 640
+  classes:
+    - bumper
+    - hood
+    - fender
+    - door
+    - windshield
+    - headlight
+    - taillight
+    - mirror
+    - trunk
+    - roof
+    - quarter_panel
+    - grille
+    - wheel
+  use_default_classes_mapping: true
+
+layer2:
+  version: convnextv2_large_v1
+  backbone: convnextv2_large.fcmae_ft_in22k_in1k
+  weights: null            # e.g. checkpoints/layer2/layer2_best.pt
+  threshold: 0.5
+  classes:
+    - dent
+    - scratch
+    - crack
+    - shatter
+    - tear
+    - deformation
+    - paint_loss
+    - puncture
+    - misalignment
+
+layer3:
+  version: swinv2_large_v1
+  backbone: swinv2_large_window12to24_192to384.ms_in22k_ft_in1k
+  weights: null            # e.g. checkpoints/layer3/layer3_best.pt
+  grades:
+    - minor
+    - moderate
+    - severe
+    - total_loss
+
+runtime:
+  device: cuda             # falls back to CPU if CUDA unavailable
+  batch_size: 8
+  crop_margin: 0.1         # expand bbox by 10 percent before cropping
+  max_parts: 32            # hard cap on number of parts per image
+  use_rule_override: false # if true, override L3 repair/replace with static rules

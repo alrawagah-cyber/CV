@@ -1,0 +1,30 @@
+# Shared base image: PyTorch + OpenCV system libs + our Python deps.
+# For GPU, swap `python:3.11-slim` for an nvidia/cuda + pytorch runtime image.
+FROM python:3.11-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    CDP_INFERENCE_CONFIG=/app/configs/inference.yaml
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+        curl ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip && pip install -r /app/requirements.txt
+
+COPY models /app/models
+COPY inference /app/inference
+COPY api /app/api
+COPY training /app/training
+COPY scripts /app/scripts
+COPY configs /app/configs
+COPY data/samples /app/data/samples
+
+ENV PYTHONPATH=/app

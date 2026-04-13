@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual envs
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# ML artifacts
+runs/
+wandb/
+mlruns/
+checkpoints/
+*.pt
+*.pth
+*.onnx
+*.torchscript
+exports/*.onnx
+exports/*.pt
+!exports/.gitkeep
+
+# Data - user drops in their own
+data/layer1/images/*
+data/layer1/labels/*
+!data/layer1/images/.gitkeep
+!data/layer1/labels/.gitkeep
+data/layer2/crops/*
+!data/layer2/crops/.gitkeep
+data/layer3/crops/*
+!data/layer3/crops/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/
+
+# OS
+Thumbs.db

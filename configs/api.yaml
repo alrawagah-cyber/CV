@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------
+# API runtime config. Most values are also tunable via environment vars:
+#   CDP_INFERENCE_CONFIG   - path to inference.yaml (default: configs/inference.yaml)
+#   CDP_LOAD_MODELS        - set '0' to skip model load (test mode)
+#   CDP_CELERY_BROKER      - Celery broker URL (default: redis://redis:6379/0)
+#   CDP_CELERY_BACKEND     - Celery result backend (default: redis://redis:6379/1)
+# ---------------------------------------------------------------------
+
+host: 0.0.0.0
+port: 8000
+workers: 1
+rate_limit_per_minute: 120
+per_endpoint_limits:
+  assess: 30/minute
+  assess_batch: 10/minute
+redis:
+  url: redis://redis:6379/0
+  result_backend_url: redis://redis:6379/1
+celery:
+  concurrency: 2
+  task_time_limit: 600

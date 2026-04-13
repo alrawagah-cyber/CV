@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------
+# Layer 1 — Part detection (YOLO) training config.
+# Fine-tunes yolov8x.pt (or yolo11x.pt) on your car-part dataset.
+# Run:  python training/train_layer1.py --config configs/layer1.yaml
+# ---------------------------------------------------------------------
+
+project_dir: runs/layer1
+run_name: exp
+device: null   # null -> ultralytics auto-select
+seed: 42
+
+model:
+  arch: yolov8x            # or yolo11x
+  weights: yolov8x.pt      # change to yolo11x.pt to use YOLOv11
+  classes: &classes
+    - bumper
+    - hood
+    - fender
+    - door
+    - windshield
+    - headlight
+    - taillight
+    - mirror
+    - trunk
+    - roof
+    - quarter_panel
+    - grille
+    - wheel
+
+data:
+  # This YAML must follow Ultralytics' data spec:
+  # https://docs.ultralytics.com/datasets/detect/
+  data_yaml: data/layer1/data.yaml
+
+training:
+  epochs: 100
+  batch_size: 16
+  img_size: 640
+  lr: 1.0e-3
+  lrf: 0.01
+  momentum: 0.937
+  weight_decay: 5.0e-4
+  warmup_epochs: 3.0
+  early_stop_patience: 20
+  amp: true
+
+augmentation:
+  mosaic: 1.0
+  mixup: 0.1
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  degrees: 5.0
+  translate: 0.1
+  scale: 0.5
+  fliplr: 0.5
+
+tracking:
+  backend: none         # 'wandb' | 'mlflow' | 'none'
+  project: car-damage-pipeline

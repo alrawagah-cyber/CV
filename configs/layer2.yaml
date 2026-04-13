@@ -1,0 +1,55 @@
+# ---------------------------------------------------------------------
+# Layer 2 — Damage-type multi-label classifier (ConvNeXt-V2-L).
+# Run: python training/train_layer2.py --config configs/layer2.yaml
+# ---------------------------------------------------------------------
+
+run_name: layer2-convnextv2-v1
+device: cuda
+seed: 42
+
+model:
+  # Swap to 'tf_efficientnetv2_l.in21k_ft_in1k' for EfficientNet-V2-L
+  backbone: convnextv2_large.fcmae_ft_in22k_in1k
+  pretrained: true
+  dropout: 0.2
+  drop_path_rate: 0.1
+  classes:
+    - dent
+    - scratch
+    - crack
+    - shatter
+    - tear
+    - deformation
+    - paint_loss
+    - puncture
+    - misalignment
+
+data:
+  root: data/layer2
+  train_csv: data/layer2/train.csv
+  val_csv: data/layer2/val.csv
+
+augmentation:
+  image_size: 384
+  strength: medium   # light | medium | heavy
+
+training:
+  epochs: 30
+  batch_size: 16
+  num_workers: 4
+  lr: 1.0e-4
+  weight_decay: 0.05
+  warmup_ratio: 0.05
+  grad_clip: 1.0
+  amp: true
+  use_ema: true
+  ema_decay: 0.999
+  early_stop_patience: 5
+  class_balance: true
+
+checkpoint_dir: checkpoints/layer2
+checkpoint_name: layer2_best.pt
+
+tracking:
+  backend: none
+  project: car-damage-pipeline

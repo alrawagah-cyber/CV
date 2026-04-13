@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "car-damage-pipeline"
+version = "0.1.0"
+description = "Enterprise-grade 3-layer car damage assessment pipeline for insurance claims"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [{ name = "alrawagah-cyber" }]
+
+[tool.setuptools.packages.find]
+include = ["models*", "training*", "inference*", "api*"]
+exclude = ["tests*", "scripts*", "data*", "docker*", "configs*"]
+
+# ------- Ruff -------
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = ["exports", "runs", "wandb", "mlruns"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4"]
+ignore = ["E501", "B008"]  # line length handled by black; FastAPI Depends uses B008
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B"]
+"__init__.py" = ["F401"]
+
+# ------- Black -------
+[tool.black]
+line-length = 110
+target-version = ["py310"]
+
+# ------- Pytest -------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra -q --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "gpu: requires GPU (deselect with '-m \"not gpu\"')",
+    "integration: integration tests requiring downloaded weights",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
