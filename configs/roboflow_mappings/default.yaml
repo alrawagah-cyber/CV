@@ -1,0 +1,166 @@
+# ---------------------------------------------------------------------
+# Default class-remap for Roboflow car-part datasets -> our 13-class
+# vocabulary (see configs/layer1.yaml:model.classes).
+#
+# Matching rules applied by scripts/prepare_roboflow_dataset.py:
+#   1. Source class name is lowercased.
+#   2. Non-alphanumerics collapse to underscores ("Front-Bumper" -> "front_bumper").
+#   3. The normalized name is looked up in `mapping` below.
+#   4. Names listed under `skip` are dropped (no label emitted).
+#   5. Unmapped names either error or pass through unchanged, controlled
+#      by --on-unknown {error,skip,keep}.
+# ---------------------------------------------------------------------
+
+# Target vocabulary (order matches configs/layer1.yaml and becomes the
+# class_id in output .txt files).
+target_classes:
+  - bumper
+  - hood
+  - fender
+  - door
+  - windshield
+  - headlight
+  - taillight
+  - mirror
+  - trunk
+  - roof
+  - quarter_panel
+  - grille
+  - wheel
+
+mapping:
+  # bumper
+  bumper: bumper
+  front_bumper: bumper
+  rear_bumper: bumper
+  back_bumper: bumper
+  bumper_front: bumper
+  bumper_rear: bumper
+
+  # hood
+  hood: hood
+  bonnet: hood
+  front_hood: hood
+
+  # fender
+  fender: fender
+  front_fender: fender
+  left_fender: fender
+  right_fender: fender
+  front_left_fender: fender
+  front_right_fender: fender
+
+  # door
+  door: door
+  front_door: door
+  rear_door: door
+  left_door: door
+  right_door: door
+  front_left_door: door
+  front_right_door: door
+  rear_left_door: door
+  rear_right_door: door
+  driver_door: door
+  passenger_door: door
+
+  # windshield / windscreen
+  windshield: windshield
+  windscreen: windshield
+  front_glass: windshield
+  front_windshield: windshield
+  back_glass: windshield
+  rear_glass: windshield
+  rear_windshield: windshield
+
+  # headlight
+  headlight: headlight
+  headlamp: headlight
+  head_light: headlight
+  head_lamp: headlight
+  front_light: headlight
+  front_lamp: headlight
+  fog_light: headlight
+  fog_lamp: headlight
+
+  # taillight
+  taillight: taillight
+  tail_light: taillight
+  tail_lamp: taillight
+  rear_light: taillight
+  rear_lamp: taillight
+  brake_light: taillight
+
+  # mirror
+  mirror: mirror
+  side_mirror: mirror
+  wing_mirror: mirror
+  rearview_mirror: mirror
+  rear_view_mirror: mirror
+  outside_mirror: mirror
+
+  # trunk / boot / tailgate
+  trunk: trunk
+  boot: trunk
+  tailgate: trunk
+  trunk_lid: trunk
+  rear_hood: trunk
+  back_door: trunk     # hatchbacks
+
+  # roof
+  roof: roof
+  car_roof: roof
+  sunroof: roof
+
+  # quarter panel
+  quarter_panel: quarter_panel
+  quarterpanel: quarter_panel
+  rear_quarter: quarter_panel
+  rear_quarter_panel: quarter_panel
+  rear_fender: quarter_panel   # many datasets label the rear fender as quarter
+
+  # grille
+  grille: grille
+  grill: grille
+  front_grille: grille
+  front_grill: grille
+  radiator_grille: grille
+
+  # wheel
+  wheel: wheel
+  tire: wheel
+  tyre: wheel
+  rim: wheel
+  wheel_rim: wheel
+  front_wheel: wheel
+  rear_wheel: wheel
+  alloy_wheel: wheel
+  hubcap: wheel
+
+# Classes explicitly dropped from the output (intentionally unmapped).
+skip:
+  - license_plate
+  - number_plate
+  - plate
+  - emblem
+  - logo
+  - badge
+  - antenna
+  - wiper
+  - wipers
+  - exhaust
+  - exhaust_pipe
+  - tail_pipe
+  - background
+  - car
+  - vehicle
+  - window           # side window — usually not a claim part on its own
+  - side_window
+  - sunroof_window
+  - handle
+  - door_handle
+  - fuel_cap
+  - gas_cap
+  - running_board
+  - splash_guard
+  - mud_guard
+  - roof_rack

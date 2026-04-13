@@ -69,9 +69,83 @@ api/             - FastAPI app, Pydantic schemas, Celery worker, Prometheus metr
 configs/         - YAML configs for each layer + inference + API
 data/            - dataset layout spec + sample annotation files (drop yours here)
 tests/           - pytest (CPU-only, stubbed models)
-scripts/         - download_weights, run_inference, export_onnx, validate_dataset
+scripts/         - download_weights, run_inference, export_onnx, validate_dataset,
+                   prepare_roboflow_dataset, extract_crops
 docker/          - Dockerfile.base / .api / .worker + prometheus.yml
 ```
+
+---
+
+## Preparing data
+
+### Layer 1 — ingesting Roboflow datasets
+
+Most public part-detection datasets ship with their own class vocabulary (e.g. `front_bumper`, `rear_bumper`, `Head Lamp`, ...). `scripts/prepare_roboflow_dataset.py` remaps them into our 13-class vocabulary and merges them into `data/layer1/`.
+
+```bash
+# 1. On Roboflow Universe, click "Download Dataset" → format "YOLOv8".
+#    Unzip each into a scratch folder, e.g. ~/roboflow_raw/<name>/.
+
+# 2. Dry-run to see what the mapping would produce:
+python scripts/prepare_roboflow_dataset.py \
+    --input ~/roboflow_raw/car-part-q8otu \
+    --mapping configs/roboflow_mappings/default.yaml \
+    --output data/layer1 \
+    --prefix cpq8otu \
+    --on-unknown skip \
+    --dry-run
+
+# 3. If it complains about unmapped classes, edit the mapping YAML and re-run.
+#    --on-unknown error  stops on anything not in mapping/skip (recommended once mapping is final).
+#    --on-unknown skip   drops unknowns silently (useful for exploration).
+
+# 4. Merge the dataset in:
+python scripts/prepare_roboflow_dataset.py \
+    --input ~/roboflow_raw/car-part-q8otu \
+    --mapping configs/roboflow_mappings/default.yaml \
+    --output data/layer1 \
+    --prefix cpq8otu
+
+# 5. Repeat for each Roboflow export, changing --prefix so filenames don't collide:
+python scripts/prepare_roboflow_dataset.py --input ~/roboflow_raw/car-part-detect-chrlc \
+    --mapping configs/roboflow_mappings/default.yaml --output data/layer1 --prefix chrlc
+python scripts/prepare_roboflow_dataset.py --input ~/roboflow_raw/part-autolabeld \
+    --mapping configs/roboflow_mappings/default.yaml --output data/layer1 --prefix autolabeld
+python scripts/prepare_roboflow_dataset.py --input ~/roboflow_raw/car-mz8m3 \
+    --mapping configs/roboflow_mappings/default.yaml --output data/layer1 --prefix mz8m3
+
+# 6. Validate:
+python scripts/validate_dataset.py --layer 1 --root data/layer1
+```
+
+The mapping file (`configs/roboflow_mappings/default.yaml`) is case-insensitive and collapses separators, so `Front-Bumper`, `front_bumper`, and `FRONT BUMPER` all resolve to `bumper`. You can create per-dataset overrides next to the default if one project uses unusual names.
+
+### Layers 2 & 3 — generating crops from Layer 1 detections
+
+Once Layer 1 is fine-tuned (or even using the COCO baseline), extract candidate crops so you only have to label damage type (L2) and severity (L3), not bounding boxes:
+
+```bash
+# Layer 2 manifest (multi-label damage type, all cols zeroed, ready to flip bits):
+python scripts/extract_crops.py \
+    --source data/layer1/images \
+    --weights runs/layer1/exp/weights/best.pt \
+    --layer 2 \
+    --out data/layer2/crops \
+    --manifest data/layer2/crops_manifest.csv \
+    --conf 0.3 --margin 0.1
+
+# Layer 3 manifest (severity + repair/replace, placeholders for your labelers):
+python scripts/extract_crops.py \
+    --source data/layer1/images \
+    --weights runs/layer1/exp/weights/best.pt \
+    --layer 3 \
+    --out data/layer3/crops \
+    --manifest data/layer3/crops_manifest.csv
+```
+
+Open the manifest CSV in Label Studio or a spreadsheet, annotate, then split into `train.csv` / `val.csv`. Keep the metadata columns (`source_image`, `part`, `detection_confidence`, bbox coords) — they're handy for stratified splits and per-part evaluation later.
+
+> **L2/L3 data caveat.** Roboflow part-detection datasets do **not** provide damage-type or severity labels. You'll need a damage-annotated source (e.g. CarDD, Roboflow "car damage" projects, or your own insurance claim photos) to label what comes out of `extract_crops.py`.
 
 ---
 
@@ -82,7 +156,7 @@ Each layer has its own config in `configs/` and its own entrypoint. See `data/RE
 ### Layer 1 — Part detector (YOLO)
 
 ```bash
-# Drop images into data/layer1/images/ and YOLO .txt labels into data/layer1/labels/.
+# After running prepare_roboflow_dataset.py (above), data/layer1/ is populated.
 # Update data/layer1/data.yaml to point at disjoint train/val splits.
 python scripts/validate_dataset.py --layer 1 --root data/layer1
 python training/train_layer1.py --config configs/layer1.yaml
