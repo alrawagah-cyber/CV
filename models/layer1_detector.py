@@ -13,12 +13,12 @@ defined in configs/layer1.yaml.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
-
 
 DEFAULT_PART_CLASSES: list[str] = [
     "bumper",
@@ -41,9 +41,9 @@ DEFAULT_PART_CLASSES: list[str] = [
 class Detection:
     """A single bounding-box detection in normalized [0, 1] xyxy coords."""
 
-    part: str                 # class name
-    class_id: int             # class index
-    confidence: float         # [0, 1]
+    part: str  # class name
+    class_id: int  # class index
+    confidence: float  # [0, 1]
     bbox_xyxy_norm: tuple[float, float, float, float]
     bbox_xyxy_px: tuple[int, int, int, int]
     image_width: int
@@ -126,7 +126,7 @@ class PartDetector:
             confs = r.boxes.conf.cpu().numpy()
             cls_ids = r.boxes.cls.cpu().numpy().astype(int)
 
-            for box, conf_v, cid in zip(xyxy, confs, cls_ids):
+            for box, conf_v, cid in zip(xyxy, confs, cls_ids, strict=True):
                 x1, y1, x2, y2 = box.tolist()
                 part_name = model_names.get(int(cid), f"class_{int(cid)}")
                 dets.append(

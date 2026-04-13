@@ -108,6 +108,7 @@ async def assess_batch(request: Request, files: list[UploadFile] = File(...)) ->
     # Enqueue Celery task
     try:
         from api.tasks import assess_images_task
+
         async_result = assess_images_task.apply_async(args=[b64_images, ids])
     except Exception as exc:
         logger.exception("Failed to enqueue job")

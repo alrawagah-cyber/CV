@@ -25,7 +25,10 @@ def make_synthetic_car(path: str | Path, width: int = 640, height: int = 480) ->
     # "car body"
     d.rounded_rectangle(
         [int(width * 0.15), int(height * 0.35), int(width * 0.85), int(height * 0.72)],
-        radius=30, fill=(140, 30, 40), outline=(10, 10, 10), width=3,
+        radius=30,
+        fill=(140, 30, 40),
+        outline=(10, 10, 10),
+        width=3,
     )
     # "windshield"
     d.polygon(
@@ -35,13 +38,16 @@ def make_synthetic_car(path: str | Path, width: int = 640, height: int = 480) ->
             (int(width * 0.62), int(height * 0.50)),
             (int(width * 0.38), int(height * 0.50)),
         ],
-        fill=(120, 150, 170), outline=(20, 20, 30),
+        fill=(120, 150, 170),
+        outline=(20, 20, 30),
     )
     # wheels
-    d.ellipse([int(width * 0.22), int(height * 0.63), int(width * 0.32), int(height * 0.78)],
-              fill=(20, 20, 20))
-    d.ellipse([int(width * 0.68), int(height * 0.63), int(width * 0.78), int(height * 0.78)],
-              fill=(20, 20, 20))
+    d.ellipse(
+        [int(width * 0.22), int(height * 0.63), int(width * 0.32), int(height * 0.78)], fill=(20, 20, 20)
+    )
+    d.ellipse(
+        [int(width * 0.68), int(height * 0.63), int(width * 0.78), int(height * 0.78)], fill=(20, 20, 20)
+    )
 
     img.save(path, quality=92)
     return path

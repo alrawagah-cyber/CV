@@ -18,12 +18,12 @@ Example config (configs/inference.yaml):
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from models.layer1_detector import PartDetector
 from models.layer2_damage import DamageTypeClassifier
 from models.layer3_severity import SeverityAssessor
-
 
 Builder = Callable[..., Any]
 
@@ -38,9 +38,7 @@ MODEL_REGISTRY: dict[str, Builder] = {
 def build_model(name: str, **kwargs: Any) -> Any:
     """Instantiate a registered model by name."""
     if name not in MODEL_REGISTRY:
-        raise KeyError(
-            f"Unknown model '{name}'. Registered: {sorted(MODEL_REGISTRY.keys())}"
-        )
+        raise KeyError(f"Unknown model '{name}'. Registered: {sorted(MODEL_REGISTRY.keys())}")
     return MODEL_REGISTRY[name](**kwargs)
 
 

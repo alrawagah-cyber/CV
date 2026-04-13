@@ -90,6 +90,7 @@ def sample_rgb_image() -> np.ndarray:
 @pytest.fixture
 def tmp_image_path(tmp_path: Path, sample_rgb_image: np.ndarray) -> Path:
     from PIL import Image
+
     p = tmp_path / "sample.jpg"
     Image.fromarray(sample_rgb_image).save(p, quality=85)
     return p
@@ -124,9 +125,12 @@ def stub_assessor(monkeypatch):
             B = x.shape[0]
             return [
                 SeverityOutput(
-                    grade="minor", grade_index=0, grade_confidence=0.7,
+                    grade="minor",
+                    grade_index=0,
+                    grade_confidence=0.7,
                     severity_probs={g: (0.7 if g == "minor" else 0.1) for g in self.grades},
-                    repair_probability=0.7, replace_probability=0.3,
+                    repair_probability=0.7,
+                    replace_probability=0.3,
                     recommendation="repair",
                 )
                 for _ in range(B)

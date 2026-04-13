@@ -26,7 +26,6 @@ from models.layer2_damage import DEFAULT_DAMAGE_CLASSES
 from models.layer3_severity import DEFAULT_SEVERITY_GRADES
 from training.datasets import PartDetectionManifest
 
-
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
@@ -167,8 +166,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--layer", type=int, required=True, choices=[1, 2, 3])
     parser.add_argument("--root", type=str, required=True)
-    parser.add_argument("--csv", type=str, default=None,
-                        help="Override CSV path (defaults to annotations.sample.csv for L2/L3).")
+    parser.add_argument(
+        "--csv",
+        type=str,
+        default=None,
+        help="Override CSV path (defaults to annotations.sample.csv for L2/L3).",
+    )
     args = parser.parse_args()
 
     root = Path(args.root)

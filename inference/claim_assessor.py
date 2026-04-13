@@ -42,7 +42,6 @@ from models.layer1_detector import DEFAULT_PART_CLASSES, Detection, PartDetector
 from models.layer2_damage import DEFAULT_DAMAGE_CLASSES, DamageTypeClassifier
 from models.layer3_severity import DEFAULT_SEVERITY_GRADES, SeverityAssessor
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -75,14 +74,16 @@ class AssessorConfig:
     use_rule_override: bool = False
 
     # Versioning for the report
-    versions: dict[str, str] = field(default_factory=lambda: {
-        "layer1": "yolov8x_v1",
-        "layer2": "convnextv2_large_v1",
-        "layer3": "swinv2_large_v1",
-    })
+    versions: dict[str, str] = field(
+        default_factory=lambda: {
+            "layer1": "yolov8x_v1",
+            "layer2": "convnextv2_large_v1",
+            "layer3": "swinv2_large_v1",
+        }
+    )
 
     @classmethod
-    def from_file(cls, path: str | Path) -> "AssessorConfig":
+    def from_file(cls, path: str | Path) -> AssessorConfig:
         with open(path) as f:
             cfg = yaml.safe_load(f) or {}
         l1 = cfg.get("layer1", {})
@@ -140,11 +141,15 @@ class ClaimAssessor:
         )
 
         logger.info("Loading Layer 2 (damage type)...")
-        self.damage_model = DamageTypeClassifier(
-            backbone=cfg.l2_backbone,
-            classes=cfg.l2_classes,
-            pretrained=cfg.l2_weights is None,  # if no weights provided, use pretrained backbone
-        ).to(self.device).eval()
+        self.damage_model = (
+            DamageTypeClassifier(
+                backbone=cfg.l2_backbone,
+                classes=cfg.l2_classes,
+                pretrained=cfg.l2_weights is None,  # if no weights provided, use pretrained backbone
+            )
+            .to(self.device)
+            .eval()
+        )
         self._l2_is_baseline = cfg.l2_weights is None
         if cfg.l2_weights:
             logger.info("Loading Layer 2 weights from %s", cfg.l2_weights)
@@ -153,11 +158,15 @@ class ClaimAssessor:
             self.damage_model.load_state_dict(state, strict=False)
 
         logger.info("Loading Layer 3 (severity)...")
-        self.severity_model = SeverityAssessor(
-            backbone=cfg.l3_backbone,
-            grades=cfg.l3_grades,
-            pretrained=cfg.l3_weights is None,
-        ).to(self.device).eval()
+        self.severity_model = (
+            SeverityAssessor(
+                backbone=cfg.l3_backbone,
+                grades=cfg.l3_grades,
+                pretrained=cfg.l3_weights is None,
+            )
+            .to(self.device)
+            .eval()
+        )
         self._l3_is_baseline = cfg.l3_weights is None
         if cfg.l3_weights:
             logger.info("Loading Layer 3 weights from %s", cfg.l3_weights)
@@ -172,7 +181,7 @@ class ClaimAssessor:
     # Factory
     # ------------------------------------------------------------------ #
     @classmethod
-    def from_config(cls, path: str | Path) -> "ClaimAssessor":
+    def from_config(cls, path: str | Path) -> ClaimAssessor:
         return cls(AssessorConfig.from_file(path))
 
     # ------------------------------------------------------------------ #
@@ -191,7 +200,7 @@ class ClaimAssessor:
         assert len(image_ids) == len(images)
 
         reports: list[dict[str, Any]] = []
-        for src, maybe_id in zip(images, image_ids):
+        for src, maybe_id in zip(images, image_ids, strict=True):
             t0 = time.time()
             img = load_image(src)
             img_id = maybe_id or _derive_image_id(src, img)
@@ -208,12 +217,17 @@ class ClaimAssessor:
                 detections = sorted(detections, key=lambda d: -d.confidence)[: self.cfg.max_parts]
 
             if not detections:
-                reports.append(build_report(
-                    image_id=img_id, image_width=w, image_height=h, parts=[],
-                    pretrained_baseline=self.pretrained_baseline,
-                    model_versions=self.cfg.versions,
-                    warnings=["No parts detected above confidence threshold."],
-                ))
+                reports.append(
+                    build_report(
+                        image_id=img_id,
+                        image_width=w,
+                        image_height=h,
+                        parts=[],
+                        pretrained_baseline=self.pretrained_baseline,
+                        model_versions=self.cfg.versions,
+                        warnings=["No parts detected above confidence threshold."],
+                    )
+                )
                 continue
 
             # --- Expand + crop
@@ -224,20 +238,28 @@ class ClaimAssessor:
 
             # --- Layer 2
             l2_input = batch_tensor_from_crops(
-                crops_np, size=self.damage_model.input_size,
-                mean=self.damage_model.mean, std=self.damage_model.std,
+                crops_np,
+                size=self.damage_model.input_size,
+                mean=self.damage_model.mean,
+                std=self.damage_model.std,
             ).to(self.device)
 
             l2_probs_list: list[np.ndarray] = []
             for chunk in chunked(l2_input, self.cfg.batch_size):
                 p = self.damage_model.predict_proba(chunk).cpu().numpy()
                 l2_probs_list.append(p)
-            l2_probs = np.concatenate(l2_probs_list, axis=0) if l2_probs_list else np.zeros((0, len(self.cfg.l2_classes)))
+            l2_probs = (
+                np.concatenate(l2_probs_list, axis=0)
+                if l2_probs_list
+                else np.zeros((0, len(self.cfg.l2_classes)))
+            )
 
             # --- Layer 3
             l3_input = batch_tensor_from_crops(
-                crops_np, size=self.severity_model.input_size,
-                mean=self.severity_model.mean, std=self.severity_model.std,
+                crops_np,
+                size=self.severity_model.input_size,
+                mean=self.severity_model.mean,
+                std=self.severity_model.std,
             ).to(self.device)
 
             severity_outputs = []
@@ -246,14 +268,11 @@ class ClaimAssessor:
 
             # --- Assemble report
             parts = []
-            for det, dam_probs, sev in zip(detections, l2_probs, severity_outputs):
+            for det, dam_probs, sev in zip(detections, l2_probs, severity_outputs, strict=True):
                 parts.append(
                     build_part_assessment(
                         detection=det.to_dict(),
-                        damage_probs={
-                            cls: float(dam_probs[j])
-                            for j, cls in enumerate(self.cfg.l2_classes)
-                        },
+                        damage_probs={cls: float(dam_probs[j]) for j, cls in enumerate(self.cfg.l2_classes)},
                         damage_threshold=self.cfg.l2_threshold,
                         severity={
                             "grade": sev.grade,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 import structlog
 from fastapi import Request, Response
@@ -46,8 +46,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
         log = structlog.get_logger("api")
-        structlog.contextvars.bind_contextvars(request_id=request_id, path=request.url.path,
-                                               method=request.method)
+        structlog.contextvars.bind_contextvars(
+            request_id=request_id, path=request.url.path, method=request.method
+        )
         t0 = time.time()
         try:
             response: Response = await call_next(request)

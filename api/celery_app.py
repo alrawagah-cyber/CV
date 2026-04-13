@@ -10,7 +10,6 @@ import os
 
 from celery import Celery
 
-
 BROKER = os.environ.get("CDP_CELERY_BROKER", "redis://redis:6379/0")
 BACKEND = os.environ.get("CDP_CELERY_BACKEND", "redis://redis:6379/1")
 

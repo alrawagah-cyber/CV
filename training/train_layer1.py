@@ -19,7 +19,6 @@ import yaml
 
 from models.layer1_detector import PartDetector
 
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("train_layer1")
 
@@ -32,8 +31,7 @@ def load_config(path: str | Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fine-tune Layer 1 (YOLO).")
     parser.add_argument("--config", required=True, type=str)
-    parser.add_argument("--data", type=str, default=None,
-                        help="Override the data yaml path from the config.")
+    parser.add_argument("--data", type=str, default=None, help="Override the data yaml path from the config.")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
@@ -78,8 +76,9 @@ def main() -> None:
 
     logger.info("Starting YOLO training with kwargs: %s", train_kwargs)
     detector.train(**train_kwargs)
-    logger.info("Training complete. Best weights saved under %s/%s",
-                train_kwargs["project"], train_kwargs["name"])
+    logger.info(
+        "Training complete. Best weights saved under %s/%s", train_kwargs["project"], train_kwargs["name"]
+    )
 
 
 if __name__ == "__main__":

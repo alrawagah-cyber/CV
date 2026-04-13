@@ -11,9 +11,10 @@ import copy
 import logging
 import math
 import time
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -188,8 +189,10 @@ class Trainer:
                 if original is not None:
                     self.model.load_state_dict(original, strict=False)
 
-            merged = {**{f"train/{k}": v for k, v in train_metrics.items()},
-                      **{f"val/{k}": v for k, v in val_metrics.items()}}
+            merged = {
+                **{f"train/{k}": v for k, v in train_metrics.items()},
+                **{f"val/{k}": v for k, v in val_metrics.items()},
+            }
             self.state.history.append(merged)
             logger.info("epoch %d: %s", epoch, merged)
             if self.tracker is not None:
@@ -199,7 +202,8 @@ class Trainer:
             if current is None:
                 raise RuntimeError(f"eval_fn must return '{self.monitor}'")
             improved = (
-                current > self.state.best_metric if self.monitor_mode == "max"
+                current > self.state.best_metric
+                if self.monitor_mode == "max"
                 else current < self.state.best_metric
             )
             if improved:
@@ -219,11 +223,13 @@ class Trainer:
     def _save_checkpoint(self) -> None:
         path = self.checkpoint_dir / self.checkpoint_name
         state_dict = (
-            copy.deepcopy(self.ema.shadow) if self.ema is not None
+            copy.deepcopy(self.ema.shadow)
+            if self.ema is not None
             else {k: v.detach().clone() for k, v in self.model.state_dict().items()}
         )
-        torch.save({"state_dict": state_dict, "epoch": self.state.epoch,
-                    "best_metric": self.state.best_metric}, path)
+        torch.save(
+            {"state_dict": state_dict, "epoch": self.state.epoch, "best_metric": self.state.best_metric}, path
+        )
         if self.tracker is not None:
             self.tracker.log_artifact(str(path), name=self.checkpoint_name)
         logger.info("Saved checkpoint to %s (metric=%.6f)", path, self.state.best_metric)

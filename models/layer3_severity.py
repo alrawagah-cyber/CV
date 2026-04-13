@@ -17,7 +17,6 @@ import torch.nn as nn
 
 from models.heads import CoralOrdinalHead, RepairReplaceHead
 
-
 DEFAULT_SEVERITY_GRADES: list[str] = ["minor", "moderate", "severe", "total_loss"]
 
 
@@ -29,7 +28,7 @@ class SeverityOutput:
     severity_probs: dict[str, float]
     repair_probability: float
     replace_probability: float
-    recommendation: str   # "repair" | "replace"
+    recommendation: str  # "repair" | "replace"
 
 
 class SeverityAssessor(nn.Module):
@@ -71,8 +70,8 @@ class SeverityAssessor(nn.Module):
     # --------------------------- forward ---------------------------
     def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         feats = self.backbone(x)
-        ordinal_logits = self.ordinal_head(feats)       # (B, K-1)
-        repair_logit = self.repair_head(feats)          # (B,)
+        ordinal_logits = self.ordinal_head(feats)  # (B, K-1)
+        repair_logit = self.repair_head(feats)  # (B,)
         return {"ordinal_logits": ordinal_logits, "repair_logit": repair_logit}
 
     @torch.no_grad()
@@ -86,7 +85,6 @@ class SeverityAssessor(nn.Module):
         # Convert cumulative probs to per-class probabilities: p(k) = p(>k-1) - p(>k)
         # p(>k) for k = 0..K-2 is ordinal_probs[:, k]. p(>-1) = 1, p(>K-1) = 0.
         B = ordinal_probs.shape[0]
-        K = self.num_classes
         cumulative = torch.cat(
             [
                 torch.ones(B, 1, device=ordinal_probs.device),
@@ -135,7 +133,7 @@ class SeverityAssessor(nn.Module):
         )
 
     @classmethod
-    def load(cls, path: str | Path, map_location: str | torch.device = "cpu") -> "SeverityAssessor":
+    def load(cls, path: str | Path, map_location: str | torch.device = "cpu") -> SeverityAssessor:
         ckpt: dict[str, Any] = torch.load(path, map_location=map_location)
         model = cls(
             backbone=ckpt.get("backbone", "swinv2_large_window12to24_192to384.ms_in22k_ft_in1k"),

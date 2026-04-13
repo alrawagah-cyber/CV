@@ -61,7 +61,7 @@ def test_layer3_detects_bad_severity(tmp_path: Path):
             "image": ["x.jpg"],
             "part": ["bumper"],
             "damage_type": ["dent"],
-            "severity": [9],   # out of range
+            "severity": [9],  # out of range
             "repair_or_replace": [0],
         }
     ).to_csv(bad, index=False)

@@ -11,7 +11,6 @@ from celery.exceptions import MaxRetriesExceededError
 
 from api.celery_app import celery_app
 
-
 logger = logging.getLogger(__name__)
 
 # Module-level assessor to avoid reloading large weights per task.
@@ -22,6 +21,7 @@ def _get_assessor() -> Any:
     global _ASSESSOR
     if _ASSESSOR is None:
         from inference.claim_assessor import ClaimAssessor
+
         cfg_path = os.environ.get("CDP_INFERENCE_CONFIG", "configs/inference.yaml")
         _ASSESSOR = ClaimAssessor.from_config(cfg_path)
         logger.info("Celery worker loaded assessor from %s", cfg_path)
@@ -37,7 +37,9 @@ def _get_assessor() -> Any:
     retry_jitter=True,
     max_retries=3,
 )
-def assess_images_task(self, b64_images: list[str], image_ids: list[str] | None = None) -> list[dict[str, Any]]:
+def assess_images_task(
+    self, b64_images: list[str], image_ids: list[str] | None = None
+) -> list[dict[str, Any]]:
     """Assess a batch of base64-encoded images. Returns a list of report dicts."""
     try:
         assessor = _get_assessor()
@@ -49,4 +51,4 @@ def assess_images_task(self, b64_images: list[str], image_ids: list[str] | None 
         raise
     except Exception as exc:
         logger.exception("assess_images_task failed: %s", exc)
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

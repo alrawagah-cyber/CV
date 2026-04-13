@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import torch
@@ -26,6 +26,7 @@ def load_image(source: str | Path | np.ndarray | bytes) -> np.ndarray:
         return arr.astype(np.uint8, copy=False)
     if isinstance(source, (bytes, bytearray)):
         import io
+
         img = Image.open(io.BytesIO(source)).convert("RGB")
         return np.array(img)
     p = Path(source)
@@ -80,9 +81,7 @@ def letterbox_resize(image: np.ndarray, size: int, pad_value: int = 0) -> np.nda
     return canvas
 
 
-def to_tensor_normalized(
-    image: np.ndarray, mean: tuple[float, ...], std: tuple[float, ...]
-) -> torch.Tensor:
+def to_tensor_normalized(image: np.ndarray, mean: tuple[float, ...], std: tuple[float, ...]) -> torch.Tensor:
     """uint8 HxWxC -> float CxHxW normalized."""
     arr = image.astype(np.float32) / 255.0
     mean_a = np.array(mean, dtype=np.float32).reshape(1, 1, -1)
@@ -98,10 +97,7 @@ def batch_tensor_from_crops(
     std: tuple[float, ...],
 ) -> torch.Tensor:
     """Prep a list of RGB uint8 crops into a normalized (B, 3, size, size) tensor."""
-    tensors = [
-        to_tensor_normalized(letterbox_resize(c, size), mean, std)
-        for c in crops
-    ]
+    tensors = [to_tensor_normalized(letterbox_resize(c, size), mean, std) for c in crops]
     if not tensors:
         return torch.empty(0, 3, size, size)
     return torch.stack(tensors, dim=0)

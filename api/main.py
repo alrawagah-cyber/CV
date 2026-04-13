@@ -13,7 +13,6 @@ from slowapi.errors import RateLimitExceeded
 from api.middleware import RequestLoggingMiddleware, configure_structlog, limiter
 from api.routes import router
 
-
 API_VERSION = "0.1.0"
 logger = logging.getLogger(__name__)
 
@@ -28,10 +27,10 @@ async def lifespan(app: FastAPI):
     if load_models:
         try:
             from inference.claim_assessor import ClaimAssessor
+
             logger.info("Loading ClaimAssessor from %s ...", cfg_path)
             app.state.assessor = ClaimAssessor.from_config(cfg_path)
-            logger.info("ClaimAssessor loaded (baseline=%s).",
-                        app.state.assessor.pretrained_baseline)
+            logger.info("ClaimAssessor loaded (baseline=%s).", app.state.assessor.pretrained_baseline)
         except Exception as exc:
             logger.exception("Failed to load ClaimAssessor: %s", exc)
             app.state.assessor = None

@@ -11,7 +11,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,8 +33,9 @@ def load_config(path: str | Path) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def _step(model: nn.Module, batch: dict[str, Any], device: torch.device,
-          num_classes: int, repair_weight: float) -> tuple[torch.Tensor, dict[str, float]]:
+def _step(
+    model: nn.Module, batch: dict[str, Any], device: torch.device, num_classes: int, repair_weight: float
+) -> tuple[torch.Tensor, dict[str, float]]:
     x = batch["image"].to(device, non_blocking=True)
     y_sev = batch["severity"].to(device, non_blocking=True)
     y_rep = batch["repair_or_replace"].to(device, non_blocking=True)
@@ -127,12 +127,19 @@ def main() -> None:
     )
 
     train_loader = DataLoader(
-        train_ds, batch_size=cfg["training"]["batch_size"], shuffle=True,
-        num_workers=cfg["training"].get("num_workers", 4), pin_memory=True, drop_last=True,
+        train_ds,
+        batch_size=cfg["training"]["batch_size"],
+        shuffle=True,
+        num_workers=cfg["training"].get("num_workers", 4),
+        pin_memory=True,
+        drop_last=True,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=cfg["training"]["batch_size"], shuffle=False,
-        num_workers=cfg["training"].get("num_workers", 4), pin_memory=True,
+        val_ds,
+        batch_size=cfg["training"]["batch_size"],
+        shuffle=False,
+        num_workers=cfg["training"].get("num_workers", 4),
+        pin_memory=True,
     )
 
     num_classes = len(grades)
@@ -165,8 +172,9 @@ def main() -> None:
     )
 
     state = trainer.fit()
-    logger.info("Training done. Best %s=%.6f at epoch %d",
-                trainer.monitor, state.best_metric, state.best_epoch)
+    logger.info(
+        "Training done. Best %s=%.6f at epoch %d", trainer.monitor, state.best_metric, state.best_epoch
+    )
     tracker.finish()
 
 

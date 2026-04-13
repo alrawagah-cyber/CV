@@ -17,7 +17,7 @@ import torch.nn as nn
 import yaml
 from torch.utils.data import DataLoader
 
-from models.layer2_damage import DamageTypeClassifier, DEFAULT_DAMAGE_CLASSES
+from models.layer2_damage import DEFAULT_DAMAGE_CLASSES, DamageTypeClassifier
 from training.augmentations import augmentation_from_config
 from training.datasets import DamageTypeDataset
 from training.tracking import build_tracker
@@ -32,8 +32,9 @@ def load_config(path: str | Path) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def _step(model: nn.Module, batch: dict[str, Any], device: torch.device,
-          loss_fn: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
+def _step(
+    model: nn.Module, batch: dict[str, Any], device: torch.device, loss_fn: nn.Module
+) -> tuple[torch.Tensor, dict[str, float]]:
     x = batch["image"].to(device, non_blocking=True)
     y = batch["labels"].to(device, non_blocking=True)
     logits = model(x)
@@ -74,7 +75,7 @@ def _evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> dic
         "val_precision": float(precision),
         "val_recall": float(recall),
         "val_f1_micro": float(f1),
-        "val_metric": float(f1),   # monitored metric
+        "val_metric": float(f1),  # monitored metric
     }
 
 
@@ -111,12 +112,19 @@ def main() -> None:
     )
 
     train_loader = DataLoader(
-        train_ds, batch_size=cfg["training"]["batch_size"], shuffle=True,
-        num_workers=cfg["training"].get("num_workers", 4), pin_memory=True, drop_last=True,
+        train_ds,
+        batch_size=cfg["training"]["batch_size"],
+        shuffle=True,
+        num_workers=cfg["training"].get("num_workers", 4),
+        pin_memory=True,
+        drop_last=True,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=cfg["training"]["batch_size"], shuffle=False,
-        num_workers=cfg["training"].get("num_workers", 4), pin_memory=True,
+        val_ds,
+        batch_size=cfg["training"]["batch_size"],
+        shuffle=False,
+        num_workers=cfg["training"].get("num_workers", 4),
+        pin_memory=True,
     )
 
     # class-balanced pos_weight for BCE
@@ -161,8 +169,9 @@ def main() -> None:
     )
 
     state = trainer.fit()
-    logger.info("Training done. Best %s=%.6f at epoch %d",
-                trainer.monitor, state.best_metric, state.best_epoch)
+    logger.info(
+        "Training done. Best %s=%.6f at epoch %d", trainer.monitor, state.best_metric, state.best_epoch
+    )
     tracker.finish()
 
 

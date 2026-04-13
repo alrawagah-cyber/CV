@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 # Static repair-vs-replace heuristic table.
 # Keyed by (part, damage_type, severity_index). Value is "repair" | "replace".
 # Used only if no trained repair/replace head output is available OR if the
@@ -88,9 +87,7 @@ def build_part_assessment(
         "detection_confidence": detection["confidence"],
         "bbox_xyxy_px": list(detection["bbox_xyxy_px"]),
         "bbox_xyxy_norm": list(detection["bbox_xyxy_norm"]),
-        "damage_types": [
-            {"type": k, "probability": round(float(v), 4)} for k, v in damage_types
-        ],
+        "damage_types": [{"type": k, "probability": round(float(v), 4)} for k, v in damage_types],
         "damage_probs_all": {k: round(float(v), 4) for k, v in damage_probs.items()},
         "primary_damage_type": primary_damage,
         "severity": (
@@ -123,9 +120,14 @@ def build_report(
     """Top-level JSON report for one image."""
     n_damaged = sum(1 for p in parts if p.get("primary_damage_type") is not None)
     n_replace = sum(1 for p in parts if p.get("recommendation") == "replace")
-    overall = "clean" if not parts else (
-        "total_loss" if n_replace >= max(3, len(parts) // 2)
-        else ("major_damage" if n_replace >= 1 else "minor_damage")
+    overall = (
+        "clean"
+        if not parts
+        else (
+            "total_loss"
+            if n_replace >= max(3, len(parts) // 2)
+            else ("major_damage" if n_replace >= 1 else "minor_damage")
+        )
     )
     return {
         "image_id": image_id,

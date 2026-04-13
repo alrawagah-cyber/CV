@@ -65,8 +65,7 @@ def test_severity_dataset_parses_sample_csv(tmp_path: Path):
     for i in range(1, 6):
         _seed_image(root / "crops", f"crop_00000{i}.jpg")
 
-    ds = SeverityDataset(root=root, annotations_csv=dst_csv,
-                         grades=DEFAULT_SEVERITY_GRADES, transform=None)
+    ds = SeverityDataset(root=root, annotations_csv=dst_csv, grades=DEFAULT_SEVERITY_GRADES, transform=None)
     assert len(ds) == 5
     item = ds[0]
     assert item["image"].shape[0] == 3

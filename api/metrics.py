@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from prometheus_client import Counter, Histogram
 
-
 REQUESTS_TOTAL = Counter(
     "cdp_api_requests_total",
     "Total API requests.",

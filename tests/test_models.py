@@ -49,12 +49,7 @@ def test_coral_loss_decreases_with_matched_targets():
 def test_rank_to_levels_matches_definition():
     y = torch.tensor([0, 1, 2, 3])
     levels = CoralOrdinalHead.rank_to_levels(y, num_classes=4)
-    expected = torch.tensor(
-        [[0.0, 0.0, 0.0],
-         [1.0, 0.0, 0.0],
-         [1.0, 1.0, 0.0],
-         [1.0, 1.0, 1.0]]
-    )
+    expected = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])
     assert torch.allclose(levels, expected)
 
 

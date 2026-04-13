@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -27,11 +27,11 @@ class PartAssessment(BaseModel):
     bbox_xyxy_norm: list[float]
     damage_types: list[DamageTypeScore]
     damage_probs_all: dict[str, float]
-    primary_damage_type: Optional[str] = None
-    severity: Optional[SeveritySchema] = None
-    recommendation: Optional[Literal["repair", "replace"]] = None
-    repair_probability: Optional[float] = None
-    replace_probability: Optional[float] = None
+    primary_damage_type: str | None = None
+    severity: SeveritySchema | None = None
+    recommendation: Literal["repair", "replace"] | None = None
+    repair_probability: float | None = None
+    replace_probability: float | None = None
     pretrained_baseline: bool
 
 
@@ -47,7 +47,7 @@ class ClaimReport(BaseModel):
     pretrained_baseline: bool
     model_versions: dict[str, str]
     warnings: list[str] = []
-    inference_ms: Optional[int] = None
+    inference_ms: int | None = None
     schema_version: str = "1.0"
 
 
@@ -62,11 +62,11 @@ class HealthResponse(BaseModel):
 class BatchJobResponse(BaseModel):
     job_id: str
     status: Literal["queued", "running", "succeeded", "failed"]
-    detail: Optional[str] = None
+    detail: str | None = None
 
 
 class JobStatusResponse(BaseModel):
     job_id: str
     status: Literal["queued", "running", "succeeded", "failed", "unknown"]
-    result: Optional[list[ClaimReport]] = None
-    error: Optional[str] = None
+    result: list[ClaimReport] | None = None
+    error: str | None = None

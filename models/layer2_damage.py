@@ -14,7 +14,6 @@ import torch.nn as nn
 
 from models.heads import MultiLabelHead
 
-
 DEFAULT_DAMAGE_CLASSES: list[str] = [
     "dent",
     "scratch",
@@ -96,7 +95,7 @@ class DamageTypeClassifier(nn.Module):
         )
 
     @classmethod
-    def load(cls, path: str | Path, map_location: str | torch.device = "cpu") -> "DamageTypeClassifier":
+    def load(cls, path: str | Path, map_location: str | torch.device = "cpu") -> DamageTypeClassifier:
         ckpt: dict[str, Any] = torch.load(path, map_location=map_location)
         model = cls(
             backbone=ckpt.get("backbone", "convnextv2_large.fcmae_ft_in22k_in1k"),

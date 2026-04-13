@@ -20,8 +20,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", required=True, type=str)
     parser.add_argument("--config", default="configs/inference.yaml", type=str)
-    parser.add_argument("--output", default=None, type=str,
-                        help="Optional: write JSON report to this file.")
+    parser.add_argument("--output", default=None, type=str, help="Optional: write JSON report to this file.")
     args = parser.parse_args()
 
     from inference.claim_assessor import ClaimAssessor
@@ -30,6 +29,7 @@ def main() -> int:
     if not img_path.exists():
         # Fall back to the synthetic sample if the user passed the default path.
         from scripts.generate_sample_image import make_synthetic_car
+
         if img_path.name == "test_car.jpg":
             print(f"[info] {img_path} not found; generating a synthetic one.", file=sys.stderr)
             make_synthetic_car(img_path)
