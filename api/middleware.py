@@ -64,3 +64,38 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+
+
+API_KEY_HEADER = "x-api-key"
+_OPEN_PATHS = {"/health", "/docs", "/openapi.json", "/redoc"}
+
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    """Reject requests without a valid API key.
+
+    Set the env var ``CDP_API_KEYS`` to a comma-separated list of allowed keys.
+    If the var is unset or empty, auth is **disabled** (open access) so local
+    development doesn't require a key.
+    """
+
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        import os
+
+        raw = os.environ.get("CDP_API_KEYS", "")
+        if not raw:
+            return await call_next(request)
+
+        if request.url.path in _OPEN_PATHS or request.url.path.startswith("/docs"):
+            return await call_next(request)
+
+        valid_keys = {k.strip() for k in raw.split(",") if k.strip()}
+        provided = request.headers.get(API_KEY_HEADER)
+        if not provided or provided not in valid_keys:
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+        return await call_next(request)

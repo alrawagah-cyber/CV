@@ -37,21 +37,34 @@ The `ClaimAssessor` class (`inference/claim_assessor.py`) chains the three layer
 
 ---
 
-## Quickstart
+## Quickstart (step-by-step)
 
 ```bash
-# 1. Install
-pip install -r requirements-dev.txt
+# 1. Clone the repo
+git clone https://github.com/alrawagah-cyber/CV.git && cd CV
 
-# 2. Cache pretrained weights (YOLOv8x, ConvNeXt-V2-L, SwinV2-L)
+# 2. Create a Python virtual environment (Python 3.10+ required)
+python -m venv .venv && source .venv/bin/activate   # Linux/Mac
+# .venv\Scripts\activate                             # Windows
+
+# 3. Install all dependencies
+pip install -r requirements.txt          # core (torch, timm, ultralytics, fastapi, ...)
+pip install -r requirements-dev.txt      # dev tools (pytest, ruff, black)
+
+# 4. Verify the install
+pytest -q                                # expect "43 passed"
+
+# 5. Download pretrained model weights (~3 GB, one-time)
 python scripts/download_weights.py
 
-# 3. Generate a synthetic test image and run the full pipeline
-python scripts/generate_sample_image.py
+# 6. Run the full pipeline on a synthetic test image
 python scripts/run_inference.py --image data/samples/test_car.jpg
+# Prints a JSON damage report to stdout
 
-# 4. Or launch the full stack (API + Celery worker + Redis + Prometheus)
+# 7. Launch the full stack (API + web UI + Celery worker + Redis + Prometheus)
 docker-compose up --build
+# Then open http://localhost:8000/ui in a browser — drag and drop a photo.
+# Or use the API directly:
 curl -F "file=@data/samples/test_car.jpg" http://localhost:8000/assess | jq
 ```
 
@@ -292,6 +305,30 @@ Full Pydantic definitions: `api/schemas.py`.
 
 ---
 
+## Web UI (claims portal)
+
+A single-page web frontend is served at **`http://localhost:8000/ui`** when the API is running. Adjusters can:
+- Drag-and-drop (or browse) one or more claim photos.
+- See per-part damage breakdowns with severity badges and repair/replace recommendations.
+- Expand raw JSON for each report.
+- Configure the API URL and API key in-page.
+
+No build step — it's one HTML file (`frontend/index.html`) served by FastAPI.
+
+---
+
+## Authentication
+
+Set the `CDP_API_KEYS` environment variable to a comma-separated list of valid keys:
+
+```bash
+export CDP_API_KEYS="key-abc123,key-xyz789"
+```
+
+Clients must include `x-api-key: key-abc123` in every request (except `/health`, `/docs`, `/ui`). If `CDP_API_KEYS` is unset, auth is disabled (open access for local development).
+
+---
+
 ## Model versioning / A/B testing
 
 `configs/inference.yaml` declares the active version tag per layer (`layer{1,2,3}.version`). Ship a new model by:
@@ -309,6 +346,24 @@ The report includes `model_versions` so downstream systems can bucket prediction
 - **structlog**-formatted JSON logs with a per-request `x-request-id` header (see `api/middleware.py`).
 - **Prometheus** metrics at `/metrics`: request counters, inference latency histogram, parts-detected histogram, assessment-error counter.
 - **Celery retries** with exponential backoff on task failure (`api/tasks.py`).
+
+---
+
+## Evaluation
+
+After fine-tuning, evaluate on a held-out test set:
+
+```bash
+# Crop-mode: evaluate L2+L3 on pre-cropped parts with ground truth
+python scripts/evaluate.py \
+    --manifest data/test/crops_manifest.csv \
+    --images-root data/test/crops \
+    --config configs/inference.yaml \
+    --crop-mode \
+    --output-dir eval_results/
+```
+
+Outputs: `eval_results/evaluation_summary.json` with per-class P/R/F1, severity confusion matrix, ordinal MAE, ECE (expected calibration error), and repair/replace accuracy.
 
 ---
 

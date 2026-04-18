@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Damage Assessment — Claims Portal</title>
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-hover: #1e40af;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --green: #16a34a;
+    --yellow: #ca8a04;
+    --red: #dc2626;
+    --orange: #ea580c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.5; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 3rem 2rem;
+    text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    background: var(--card); margin-bottom: 1.5rem;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--primary); background: #eff6ff;
+  }
+  .upload-zone input { display: none; }
+  .upload-zone p { color: var(--muted); margin-top: 0.5rem; }
+  .upload-zone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+  /* Config bar */
+  .config-bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .config-bar label { font-size: 0.85rem; color: var(--muted); }
+  .config-bar input[type="text"] {
+    padding: 0.4rem 0.75rem; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.85rem; width: 320px;
+  }
+  .config-bar input[type="text"]:focus { outline: none; border-color: var(--primary); }
+
+  /* Button */
+  .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.5rem;
+         background: var(--primary); color: #fff; border: none; border-radius: 8px;
+         font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn:hover { background: var(--primary-hover); }
+  .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+  /* Preview row */
+  .preview-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .preview-thumb {
+    width: 100px; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);
+  }
+
+  /* Status */
+  .status { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem;
+            font-size: 0.85rem; display: none; }
+  .status.info { display: block; background: #eff6ff; color: #1e40af; }
+  .status.error { display: block; background: #fef2f2; color: #991b1b; }
+  .status.success { display: block; background: #f0fdf4; color: #166534; }
+
+  /* Results */
+  .report { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 1.5rem; margin-bottom: 1.5rem; }
+  .report h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+  .report-header { display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .report-stat { text-align: center; }
+  .report-stat .val { font-size: 1.8rem; font-weight: 700; }
+  .report-stat .lbl { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
+
+  .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px;
+           font-size: 0.75rem; font-weight: 600; }
+  .badge-minor { background: #dcfce7; color: var(--green); }
+  .badge-moderate { background: #fef9c3; color: var(--yellow); }
+  .badge-severe { background: #fed7aa; color: var(--orange); }
+  .badge-total_loss { background: #fecaca; color: var(--red); }
+  .badge-repair { background: #dbeafe; color: #1d4ed8; }
+  .badge-replace { background: #fecaca; color: var(--red); }
+  .badge-baseline { background: #fef3c7; color: #92400e; }
+
+  /* Parts table */
+  .parts-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .parts-table th { text-align: left; padding: 0.5rem; border-bottom: 2px solid var(--border);
+                     color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+  .parts-table td { padding: 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .damage-list { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+  .damage-chip { background: #f1f5f9; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+
+  /* JSON toggle */
+  .json-toggle { cursor: pointer; color: var(--primary); font-size: 0.85rem; margin-top: 0.5rem; }
+  .json-block { display: none; margin-top: 0.5rem; background: #f8fafc; border: 1px solid var(--border);
+                 border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: 0.78rem;
+                 font-family: 'SF Mono', Monaco, 'Courier New', monospace; max-height: 400px; }
+  .json-block.open { display: block; }
+
+  @media (max-width: 640px) {
+    .config-bar input[type="text"] { width: 100%; }
+    .report-header { gap: 1rem; }
+    .preview-thumb { width: 70px; height: 52px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Car Damage Assessment</h1>
+  <p class="subtitle">Upload claim photos for automated damage analysis</p>
+
+  <div class="config-bar">
+    <div>
+      <label for="api-url">API URL</label><br>
+      <input type="text" id="api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+    </div>
+    <div>
+      <label for="api-key">API Key (optional)</label><br>
+      <input type="text" id="api-key" placeholder="Leave blank if auth disabled">
+    </div>
+  </div>
+
+  <div class="upload-zone" id="drop-zone">
+    <div class="icon">&#128247;</div>
+    <strong>Drop claim photos here or click to browse</strong>
+    <p>Supports JPG, PNG — up to 20 MB each</p>
+    <input type="file" id="file-input" accept="image/*" multiple>
+  </div>
+
+  <div class="preview-row" id="preview-row"></div>
+
+  <button class="btn" id="assess-btn" disabled>
+    <span id="btn-text">Assess Damage</span>
+  </button>
+
+  <div class="status" id="status"></div>
+  <div id="results"></div>
+</div>
+
+<script>
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const previewRow = document.getElementById('preview-row');
+const assessBtn = document.getElementById('assess-btn');
+const btnText = document.getElementById('btn-text');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+let selectedFiles = [];
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+function handleFiles(files) {
+  selectedFiles = [...files].filter(f => f.type.startsWith('image/'));
+  previewRow.innerHTML = '';
+  selectedFiles.forEach(f => {
+    const img = document.createElement('img');
+    img.className = 'preview-thumb';
+    img.src = URL.createObjectURL(f);
+    previewRow.appendChild(img);
+  });
+  assessBtn.disabled = selectedFiles.length === 0;
+}
+
+assessBtn.addEventListener('click', async () => {
+  const apiUrl = document.getElementById('api-url').value.replace(/\/+$/, '');
+  const apiKey = document.getElementById('api-key').value.trim();
+  assessBtn.disabled = true;
+  btnText.textContent = 'Processing...';
+  statusEl.className = 'status info';
+  statusEl.textContent = `Sending ${selectedFiles.length} image(s) to ${apiUrl}...`;
+  resultsEl.innerHTML = '';
+
+  const reports = [];
+  for (const file of selectedFiles) {
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const headers = {};
+      if (apiKey) headers['x-api-key'] = apiKey;
+      const res = await fetch(`${apiUrl}/assess`, { method: 'POST', body: form, headers });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || res.statusText); }
+      reports.push({ file: file.name, report: await res.json() });
+    } catch (err) {
+      reports.push({ file: file.name, error: err.message });
+    }
+  }
+
+  statusEl.className = 'status success';
+  statusEl.textContent = `Done — ${reports.filter(r => r.report).length}/${reports.length} succeeded.`;
+  reports.forEach(r => resultsEl.appendChild(r.error ? renderError(r) : renderReport(r)));
+  assessBtn.disabled = false;
+  btnText.textContent = 'Assess Damage';
+});
+
+function renderError(r) {
+  const div = document.createElement('div');
+  div.className = 'status error';
+  div.textContent = `${r.file}: ${r.error}`;
+  return div;
+}
+
+function severityBadge(grade) {
+  return `<span class="badge badge-${grade}">${grade.replace('_', ' ')}</span>`;
+}
+function recBadge(rec) {
+  if (!rec) return '';
+  return `<span class="badge badge-${rec}">${rec}</span>`;
+}
+
+function renderReport(r) {
+  const rpt = r.report;
+  const div = document.createElement('div');
+  div.className = 'report';
+  const baselineWarning = rpt.pretrained_baseline
+    ? ' <span class="badge badge-baseline">BASELINE (not fine-tuned)</span>' : '';
+  div.innerHTML = `
+    <h2>${r.file}${baselineWarning}</h2>
+    <div class="report-header">
+      <div class="report-stat"><div class="val">${rpt.parts_detected}</div><div class="lbl">Parts Detected</div></div>
+      <div class="report-stat"><div class="val">${rpt.parts_damaged}</div><div class="lbl">Parts Damaged</div></div>
+      <div class="report-stat"><div class="val">${rpt.parts_requiring_replacement}</div><div class="lbl">Need Replacement</div></div>
+      <div class="report-stat"><div class="val">${severityBadge(rpt.overall_assessment)}</div><div class="lbl">Overall</div></div>
+      ${rpt.inference_ms ? `<div class="report-stat"><div class="val">${rpt.inference_ms}</div><div class="lbl">ms</div></div>` : ''}
+    </div>
+    ${rpt.parts.length ? `<table class="parts-table">
+      <thead><tr><th>Part</th><th>Conf</th><th>Damage Types</th><th>Severity</th><th>Action</th></tr></thead>
+      <tbody>${rpt.parts.map(p => `<tr>
+        <td><strong>${p.part}</strong></td>
+        <td>${(p.detection_confidence * 100).toFixed(0)}%</td>
+        <td><div class="damage-list">${p.damage_types.map(d =>
+          `<span class="damage-chip">${d.type} ${(d.probability * 100).toFixed(0)}%</span>`).join('')}</div></td>
+        <td>${p.severity ? severityBadge(p.severity.grade) : '-'}</td>
+        <td>${recBadge(p.recommendation)}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '<p style="color:var(--muted)">No parts detected.</p>'}
+    <div class="json-toggle" onclick="this.nextElementSibling.classList.toggle('open')">
+      &#9654; Raw JSON
+    </div>
+    <pre class="json-block">${JSON.stringify(rpt, null, 2)}</pre>
+  `;
+  return div;
+}
+</script>
+</body>
+</html>

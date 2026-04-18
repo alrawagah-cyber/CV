@@ -5,12 +5,13 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
-from api.middleware import RequestLoggingMiddleware, configure_structlog, limiter
+from api.middleware import APIKeyMiddleware, RequestLoggingMiddleware, configure_structlog, limiter
 from api.routes import router
 
 API_VERSION = "0.1.0"
@@ -55,14 +56,33 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    from starlette.middleware.cors import CORSMiddleware
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.state.limiter = limiter
     app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(APIKeyMiddleware)
 
     @app.exception_handler(RateLimitExceeded)
     async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:  # noqa: ARG001
         return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
 
     app.include_router(router)
+
+    # Serve the web frontend at /ui (single-file, no build step).
+    from fastapi.responses import FileResponse
+
+    frontend_path = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+
+    @app.get("/ui", include_in_schema=False)
+    async def ui():
+        return FileResponse(frontend_path, media_type="text/html")
+
     return app
 
 

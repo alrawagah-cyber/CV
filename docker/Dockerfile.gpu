@@ -1,6 +1,7 @@
-# Shared base image: PyTorch + OpenCV system libs + our Python deps.
-# For GPU, swap `python:3.11-slim` for an nvidia/cuda + pytorch runtime image.
-FROM python:3.11-slim AS base
+# GPU-enabled base image for production inference on NVIDIA hardware.
+# Swap docker/Dockerfile.base → docker/Dockerfile.gpu in docker-compose.yml
+# when deploying to a GPU instance (GCP, AWS, on-prem).
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -10,9 +11,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CDP_INFERENCE_CONFIG=/app/configs/inference.yaml
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3.11-venv python3-pip \
         libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
         curl ca-certificates git \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 WORKDIR /app
 
