@@ -49,8 +49,13 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from models.layer3_severity import DEFAULT_SEVERITY_GRADES
-from scripts._roboflow_common import (
+# Allow running as `python scripts/prepare_roboflow_l3_dataset.py` without PYTHONPATH.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from models.layer3_severity import DEFAULT_SEVERITY_GRADES  # noqa: E402
+from scripts._roboflow_common import (  # noqa: E402
     IMG_EXTS,
     _norm,
     iterate_split,

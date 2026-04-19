@@ -21,10 +21,15 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from models.layer1_detector import DEFAULT_PART_CLASSES
-from models.layer2_damage import DEFAULT_DAMAGE_CLASSES
-from models.layer3_severity import DEFAULT_SEVERITY_GRADES
-from training.datasets import PartDetectionManifest
+# Allow running as `python scripts/validate_dataset.py` without setting PYTHONPATH.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from models.layer1_detector import DEFAULT_PART_CLASSES  # noqa: E402
+from models.layer2_damage import DEFAULT_DAMAGE_CLASSES  # noqa: E402
+from models.layer3_severity import DEFAULT_SEVERITY_GRADES  # noqa: E402
+from training.datasets import PartDetectionManifest  # noqa: E402
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 

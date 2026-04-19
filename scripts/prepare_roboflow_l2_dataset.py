@@ -37,8 +37,13 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from models.layer2_damage import DEFAULT_DAMAGE_CLASSES
-from scripts._roboflow_common import (
+# Allow running as `python scripts/prepare_roboflow_l2_dataset.py` without PYTHONPATH.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from models.layer2_damage import DEFAULT_DAMAGE_CLASSES  # noqa: E402
+from scripts._roboflow_common import (  # noqa: E402
     IMG_EXTS,
     iterate_split,
     load_mapping,
