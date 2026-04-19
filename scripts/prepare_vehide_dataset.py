@@ -62,9 +62,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger("prepare_vehide")
 
 # Fixed split layout inside the VehiDE zip.
+# The Kaggle archive nests images one level deeper ("image/image/", "validation/validation/")
+# — each candidate in the list is tried in order, the first existing one wins.
 SPLITS = {
-    "train": {"json": "0Train_via_annos.json", "images": "image"},
-    "valid": {"json": "0Val_via_annos.json", "images": "validation"},
+    "train": {"json": "0Train_via_annos.json", "images": ["image/image", "image"]},
+    "valid": {"json": "0Val_via_annos.json", "images": ["validation/validation", "validation"]},
 }
 
 
@@ -141,9 +143,16 @@ def prepare(
 
     for split, meta in SPLITS.items():
         json_path = input_dir / meta["json"]
-        imgs_dir = input_dir / meta["images"]
-        if not json_path.exists() or not imgs_dir.exists():
-            logger.warning("Split '%s' missing (%s or %s) — skipping.", split, json_path, imgs_dir)
+        if not json_path.exists():
+            logger.warning("Split '%s' missing (%s) — skipping.", split, json_path)
+            continue
+        imgs_dir = next((input_dir / c for c in meta["images"] if (input_dir / c).is_dir()), None)
+        if imgs_dir is None:
+            logger.warning(
+                "Split '%s' image dir not found under any of %s — skipping.",
+                split,
+                [str(input_dir / c) for c in meta["images"]],
+            )
             continue
 
         logger.info("Loading annotations: %s", json_path)
