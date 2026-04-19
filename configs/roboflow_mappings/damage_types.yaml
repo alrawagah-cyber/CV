@@ -33,6 +33,25 @@ mapping:
   dent_moderate: dent
   dent_severe: dent
   mop_lom: dent                  # VehiDE — "móp lõm" (dent)
+  # Roboflow compound <part>-dent labels
+  bonnet_dent: dent
+  boot_dent: dent
+  doorouter_dent: dent
+  front_bumper_dent: dent
+  rear_bumper_dent: dent
+  quaterpanel_dent: dent
+  roof_dent: dent
+  pillar_dent: dent
+  major_rear_bumper_dent: dent
+  medium_bodypanel_dent: dent
+  runningboard_dent: dent
+  # Roboflow "damaged <part>" labels (generic damage → dent as fallback)
+  damaged_bumper: dent
+  damaged_door: dent
+  damaged_hood: dent
+  damaged_mirror: dent
+  sidemirror_damage: dent        # generic mirror damage → dent fallback
+  runningboard_damage: deformation
 
   # ---------- scratch ----------
   scratch: scratch
@@ -45,6 +64,12 @@ mapping:
   scuff: scratch
   scuffed: scratch
   tray_son: scratch              # VehiDE — "trầy sơn" (paint scratch)
+  # Roboflow compound <part>-scratch and severity-scratch
+  doorouter_scratch: scratch
+  front_bumper_scratch: scratch
+  rear_bumper_scratch: scratch
+  slight_scratch: scratch
+  severe_scratch: scratch
 
   # ---------- crack ----------
   crack: crack
@@ -57,6 +82,7 @@ mapping:
   taillight_crack: crack
   panel_crack: crack
   lamp_crack: crack
+  crack_and_hole: crack          # Roboflow compound
 
   # ---------- shatter (glass) ----------
   shatter: shatter
@@ -80,6 +106,16 @@ mapping:
   taillamp_broken: shatter
   be_den: shatter                # VehiDE — "bể đèn" (broken lamp)
   vo_kinh: shatter               # VehiDE — "vỡ kính" (broken glass)
+  # Roboflow "<part>-damage" labels where damage = breakage/glass
+  front_windscreen_damage: shatter
+  rear_windscreen_damage: shatter
+  headlight_damage: shatter
+  taillight_damage: shatter
+  signlight_damage: shatter
+  windshield_damage: shatter
+  damaged_headlight: shatter
+  damaged_wind_shield: shatter
+  damaged_window: shatter
 
   # ---------- tear ----------
   tear: tear
@@ -111,6 +147,10 @@ mapping:
   missing_part: deformation
   lost_part: deformation
   missing_component: deformation
+  # Roboflow severity-prefixed deformation
+  slight_deformation: deformation
+  medium_deformation: deformation
+  severe_deformation: deformation
 
   # ---------- paint loss ----------
   paint_loss: paint_loss
@@ -121,6 +161,7 @@ mapping:
   peeling_paint: paint_loss
   paint_peeling: paint_loss
   paint_fade: paint_loss
+  paint_trace: paint_loss        # Roboflow — paint transfer marks
 
   # ---------- puncture ----------
   puncture: puncture
@@ -164,3 +205,5 @@ skip:
   - corrosion
   - dirty
   - mud
+  # Roboflow junk / non-damage labels
+  - car_damage_detection_v1_2023_04_04_2_25pm   # dataset name leaked as a class
