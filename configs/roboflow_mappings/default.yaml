@@ -36,6 +36,8 @@ mapping:
   back_bumper: bumper
   bumper_front: bumper
   bumper_rear: bumper
+  frontbumper: bumper
+  rearbumper: bumper
 
   # hood
   hood: hood
@@ -49,6 +51,9 @@ mapping:
   right_fender: fender
   front_left_fender: fender
   front_right_fender: fender
+  front_fender_l: fender
+  front_fender_r: fender
+  frontfender: fender
 
   # door
   door: door
@@ -62,6 +67,12 @@ mapping:
   rear_right_door: door
   driver_door: door
   passenger_door: door
+  front_door_l: door
+  front_door_r: door
+  rear_door_l: door
+  rear_door_r: door
+  frontdoor: door
+  reardoor: door
 
   # windshield / windscreen
   windshield: windshield
@@ -81,6 +92,9 @@ mapping:
   front_lamp: headlight
   fog_light: headlight
   fog_lamp: headlight
+  headlights: headlight
+  head_lights_r: headlight
+  head_lights_l: headlight
 
   # taillight
   taillight: taillight
@@ -89,6 +103,9 @@ mapping:
   rear_light: taillight
   rear_lamp: taillight
   brake_light: taillight
+  rear_lamp_l: taillight
+  rear_lamp_r: taillight
+  rearlamp: taillight
 
   # mirror
   mirror: mirror
@@ -97,6 +114,9 @@ mapping:
   rearview_mirror: mirror
   rear_view_mirror: mirror
   outside_mirror: mirror
+  side_mirror_l: mirror
+  side_mirror_r: mirror
+  sidemirror: mirror
 
   # trunk / boot / tailgate
   trunk: trunk
@@ -105,6 +125,7 @@ mapping:
   trunk_lid: trunk
   rear_hood: trunk
   back_door: trunk     # hatchbacks
+  trunklid: trunk
 
   # roof
   roof: roof
@@ -117,6 +138,9 @@ mapping:
   rear_quarter: quarter_panel
   rear_quarter_panel: quarter_panel
   rear_fender: quarter_panel   # many datasets label the rear fender as quarter
+  rear_fender_l: quarter_panel
+  rear_fender_r: quarter_panel
+  rearfender: quarter_panel
 
   # grille
   grille: grille
@@ -135,6 +159,10 @@ mapping:
   rear_wheel: wheel
   alloy_wheel: wheel
   hubcap: wheel
+  front_wheel_l: wheel
+  front_wheel_r: wheel
+  rear_wheel_l: wheel
+  rear_wheel_r: wheel
 
 # Classes explicitly dropped from the output (intentionally unmapped).
 skip:
@@ -164,3 +192,33 @@ skip:
   - splash_guard
   - mud_guard
   - roof_rack
+  - rocker_panel
+  - rocker_panel_l
+  - rocker_panel_r
+  - rockerpanel
+  - object
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - "6"
+  - "7"
+  - "8"
+  - "9"
+  - "10"
+  - "11"
+  - "12"
+  - "13"
+  - backcar
+  - backcarright
+  - backleftcar
+  - exteriorcar
+  - frontcar
+  - frontleftcar
+  - frontrightcar
+  - incompletecar
+  - interiorcar
+  - leftcar
+  - rightcar
