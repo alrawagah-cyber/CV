@@ -200,7 +200,7 @@ def prepare(
             new_img = out_images / f"{new_stem}{img_path.suffix.lower()}"
             new_lbl = out_labels / f"{new_stem}.txt"
 
-            # Transform label file
+            # Transform label file (handles both bbox and polygon-segmentation formats).
             new_lines: list[str] = []
             if label_path.exists():
                 for i, raw in enumerate(label_path.read_text().splitlines(), start=1):
@@ -213,10 +213,28 @@ def prepare(
                         continue
                     try:
                         src_id = int(parts[0])
+                        nums = [float(x) for x in parts[1:]]
                     except ValueError:
-                        logger.warning("%s:%d non-int class_id, skipping: %r", label_path, i, raw)
+                        logger.warning("%s:%d non-numeric fields, skipping: %r", label_path, i, raw)
                         continue
-                    coords = parts[1:5]  # cx cy w h (ignore any segmentation polygons beyond 5 fields)
+
+                    if len(nums) == 4:
+                        # Plain YOLO bbox: cx cy w h
+                        cx, cy, w, h = nums
+                    elif len(nums) >= 6 and len(nums) % 2 == 0:
+                        # YOLO segmentation polygon: x1 y1 x2 y2 ... -> min/max bbox
+                        xs = nums[0::2]
+                        ys = nums[1::2]
+                        x_min, x_max = min(xs), max(xs)
+                        y_min, y_max = min(ys), max(ys)
+                        cx = (x_min + x_max) / 2
+                        cy = (y_min + y_max) / 2
+                        w = max(1e-6, x_max - x_min)
+                        h = max(1e-6, y_max - y_min)
+                    else:
+                        logger.warning("%s:%d unexpected coord count %d, skipping", label_path, i, len(nums))
+                        continue
+
                     stats["boxes_total"] += 1
                     tgt_id = remap.get(src_id)
                     if tgt_id is None:
@@ -224,7 +242,7 @@ def prepare(
                         continue
                     stats["boxes_kept"] += 1
                     stats["boxes_per_target"][target[tgt_id]] += 1
-                    new_lines.append(" ".join([str(tgt_id), *coords]))
+                    new_lines.append(f"{tgt_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}")
 
             # Only emit images that have at least one kept box.
             # If the label file was missing, still emit as background-only (Ultralytics is fine with empty .txt).
