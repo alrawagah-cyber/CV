@@ -15,9 +15,10 @@ from typing import Any
 import torch
 import torch.nn as nn
 
+from models.class_constants import DEFAULT_SEVERITY_GRADES
 from models.heads import CoralOrdinalHead, RepairReplaceHead
 
-DEFAULT_SEVERITY_GRADES: list[str] = ["minor", "moderate", "severe", "total_loss"]
+__all__ = ["DEFAULT_SEVERITY_GRADES", "SeverityOutput", "SeverityAssessor"]
 
 
 @dataclass

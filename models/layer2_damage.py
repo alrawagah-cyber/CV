@@ -12,19 +12,10 @@ from typing import Any
 import torch
 import torch.nn as nn
 
+from models.class_constants import DEFAULT_DAMAGE_CLASSES
 from models.heads import MultiLabelHead
 
-DEFAULT_DAMAGE_CLASSES: list[str] = [
-    "dent",
-    "scratch",
-    "crack",
-    "shatter",
-    "tear",
-    "deformation",
-    "paint_loss",
-    "puncture",
-    "misalignment",
-]
+__all__ = ["DEFAULT_DAMAGE_CLASSES", "DamageTypeClassifier"]
 
 
 class DamageTypeClassifier(nn.Module):

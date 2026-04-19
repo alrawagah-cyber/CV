@@ -20,21 +20,9 @@ from typing import Any
 
 import numpy as np
 
-DEFAULT_PART_CLASSES: list[str] = [
-    "bumper",
-    "hood",
-    "fender",
-    "door",
-    "windshield",
-    "headlight",
-    "taillight",
-    "mirror",
-    "trunk",
-    "roof",
-    "quarter_panel",
-    "grille",
-    "wheel",
-]
+from models.class_constants import DEFAULT_PART_CLASSES
+
+__all__ = ["DEFAULT_PART_CLASSES", "Detection", "PartDetector"]
 
 
 @dataclass

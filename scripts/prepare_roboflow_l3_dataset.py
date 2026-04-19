@@ -54,7 +54,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from models.layer3_severity import DEFAULT_SEVERITY_GRADES  # noqa: E402
+from models.class_constants import DEFAULT_SEVERITY_GRADES  # noqa: E402
 from scripts._roboflow_common import (  # noqa: E402
     IMG_EXTS,
     _norm,
