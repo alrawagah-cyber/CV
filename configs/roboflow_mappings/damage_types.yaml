@@ -32,6 +32,7 @@ mapping:
   dent_minor: dent
   dent_moderate: dent
   dent_severe: dent
+  mop_lom: dent                  # VehiDE — "móp lõm" (dent)
 
   # ---------- scratch ----------
   scratch: scratch
@@ -43,6 +44,7 @@ mapping:
   deep_scratch: scratch
   scuff: scratch
   scuffed: scratch
+  tray_son: scratch              # VehiDE — "trầy sơn" (paint scratch)
 
   # ---------- crack ----------
   crack: crack
@@ -76,6 +78,8 @@ mapping:
   light_broken: shatter
   headlamp_broken: shatter
   taillamp_broken: shatter
+  be_den: shatter                # VehiDE — "bể đèn" (broken lamp)
+  vo_kinh: shatter               # VehiDE — "vỡ kính" (broken glass)
 
   # ---------- tear ----------
   tear: tear
@@ -83,6 +87,7 @@ mapping:
   rip: tear
   ripped: tear
   split: tear
+  rach: tear                     # VehiDE — "rách" (torn)
 
   # ---------- deformation ----------
   deformation: deformation
@@ -102,6 +107,10 @@ mapping:
   tire_flat: deformation         # CarDD — flat tire is structural deformation
   flat_tire: deformation
   flat: deformation
+  mat_bo_phan: deformation       # VehiDE — "mất bộ phận" (missing part / lost component)
+  missing_part: deformation
+  lost_part: deformation
+  missing_component: deformation
 
   # ---------- paint loss ----------
   paint_loss: paint_loss
@@ -118,6 +127,7 @@ mapping:
   hole: puncture
   pierced: puncture
   perforation: puncture
+  thung: puncture                # VehiDE — "thủng" (punctured)
 
   # ---------- misalignment ----------
   misalignment: misalignment
