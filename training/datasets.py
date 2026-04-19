@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +18,14 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from training.manifest import LabelLine, PartDetectionManifest  # re-export
+from training.manifest import LabelLine, PartDetectionManifest
+
+__all__ = [
+    "LabelLine",
+    "PartDetectionManifest",
+    "DamageTypeDataset",
+    "SeverityDataset",
+]
 
 
 # ---------------------------------------------------------------------------
