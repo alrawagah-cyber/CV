@@ -72,6 +72,10 @@ mapping:
   broken_taillight: shatter
   broken_light: shatter
   broken_lamp: shatter
+  lamp_broken: shatter           # CarDD word order
+  light_broken: shatter
+  headlamp_broken: shatter
+  taillamp_broken: shatter
 
   # ---------- tear ----------
   tear: tear
@@ -95,6 +99,9 @@ mapping:
   major_damage: deformation
   structural_damage: deformation
   collision_damage: deformation
+  tire_flat: deformation         # CarDD — flat tire is structural deformation
+  flat_tire: deformation
+  flat: deformation
 
   # ---------- paint loss ----------
   paint_loss: paint_loss
