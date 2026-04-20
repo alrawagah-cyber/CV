@@ -1,0 +1,54 @@
+# Cloud Build pipeline for the Car Damage Pipeline API.
+#
+# Usage:
+#   gcloud builds submit \
+#       --region=me-central2 \
+#       --config=cloudbuild.yaml \
+#       --substitutions=_REGION=me-central2,_REPO=cv-images,_IMAGE=car-damage-api,_TAG=v1
+#
+# Substitutions (with defaults):
+#   _REGION  — Artifact Registry region
+#   _REPO    — Artifact Registry repository name
+#   _IMAGE   — image short name
+#   _TAG     — image tag (commit SHA or semver)
+
+substitutions:
+  _REGION: me-central2
+  _REPO: cv-images
+  _IMAGE: car-damage-api
+  _TAG: latest
+
+options:
+  # Large pip install + model deps: give the build enough disk / CPU.
+  machineType: E2_HIGHCPU_8
+  diskSizeGb: 50
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - -f
+      - docker/Dockerfile.cloudrun
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:${_TAG}
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:latest
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: push-tag
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:${_TAG}
+
+  - name: gcr.io/cloud-builders/docker
+    id: push-latest
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:${_TAG}
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:latest

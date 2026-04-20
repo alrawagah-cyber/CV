@@ -1,0 +1,51 @@
+# Self-contained Dockerfile for Cloud Run deployment.
+# Combines base image setup + API entrypoint in one file so Cloud Build
+# can build it directly without a local docker-compose dependency chain.
+#
+# Weights are NOT baked in — the container fetches them from GCS at
+# startup via CDP_WEIGHTS_BUCKET (see api/weight_fetcher.py).
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    CDP_INFERENCE_CONFIG=/app/configs/inference.yaml \
+    CDP_FEEDBACK_CONFIG=/app/configs/feedback.yaml \
+    PYTHONPATH=/app \
+    PORT=8080
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+        curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python deps first for better layer caching.
+COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip && pip install -r /app/requirements.txt
+
+# Install CPU-only torch explicitly (saves ~1GB vs the default CUDA build).
+# Cloud Run CPU tier doesn't have GPU drivers; the CUDA wheels would just bloat the image.
+RUN pip install --upgrade --index-url https://download.pytorch.org/whl/cpu torch==2.3.1 torchvision==0.18.1
+
+# Copy the application.
+COPY models /app/models
+COPY inference /app/inference
+COPY api /app/api
+COPY training /app/training
+COPY scripts /app/scripts
+COPY configs /app/configs
+COPY frontend /app/frontend
+COPY data/samples /app/data/samples
+
+# Cloud Run forwards $PORT (defaults to 8080 for Cloud Run services).
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+    CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
+
+# Shell form so $PORT is expanded by Cloud Run.
+CMD uvicorn api.main:app --host 0.0.0.0 --port ${PORT} --workers 1
