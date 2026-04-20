@@ -43,3 +43,6 @@ mlflow>=2.12
 tqdm>=4.66
 click>=8.1
 requests>=2.31
+
+# --- Google Cloud (weight fetching + feedback store in production) ---
+google-cloud-storage>=2.14

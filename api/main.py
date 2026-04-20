@@ -25,6 +25,19 @@ async def lifespan(app: FastAPI):
     cfg_path = os.environ.get("CDP_INFERENCE_CONFIG", "configs/inference.yaml")
     load_models = os.environ.get("CDP_LOAD_MODELS", "1") != "0"
 
+    # In containerized deployments, pull weights from GCS before loading models.
+    # Controlled via CDP_WEIGHTS_BUCKET env var — no-op when unset.
+    try:
+        from api.weight_fetcher import fetch_weights_if_configured
+
+        refreshed = fetch_weights_if_configured()
+        if refreshed:
+            logger.info("Fetched %d weight file(s) from GCS: %s", len(refreshed), refreshed)
+    except Exception as exc:
+        logger.exception("Weight fetch failed: %s", exc)
+        # Don't hard-fail startup; the assessor will log specific errors if
+        # a weight file is missing.
+
     if load_models:
         try:
             from inference.claim_assessor import ClaimAssessor
