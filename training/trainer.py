@@ -43,9 +43,19 @@ class EMA:
     def __init__(self, model: nn.Module, decay: float = 0.999):
         self.decay = decay
         self.shadow = {k: v.detach().clone() for k, v in model.state_dict().items()}
+        self._aligned = False
+
+    def _align_to(self, model: nn.Module) -> None:
+        """Move shadow tensors onto the same device/dtype as the live model."""
+        for k, v in model.state_dict().items():
+            if k in self.shadow:
+                self.shadow[k] = self.shadow[k].to(device=v.device, dtype=v.dtype)
+        self._aligned = True
 
     @torch.no_grad()
     def update(self, model: nn.Module) -> None:
+        if not self._aligned:
+            self._align_to(model)
         for k, v in model.state_dict().items():
             if v.dtype.is_floating_point:
                 self.shadow[k].mul_(self.decay).add_(v.detach(), alpha=1.0 - self.decay)
@@ -54,6 +64,8 @@ class EMA:
 
     def apply_to(self, model: nn.Module) -> dict[str, torch.Tensor]:
         """Swap model state with EMA weights. Returns original state for restore."""
+        if not self._aligned:
+            self._align_to(model)
         original = {k: v.detach().clone() for k, v in model.state_dict().items()}
         model.load_state_dict(self.shadow, strict=False)
         return original
