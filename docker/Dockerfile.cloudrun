@@ -39,7 +39,6 @@ COPY training /app/training
 COPY scripts /app/scripts
 COPY configs /app/configs
 COPY frontend /app/frontend
-COPY data/samples /app/data/samples
 
 # Cloud Run forwards $PORT (defaults to 8080 for Cloud Run services).
 EXPOSE 8080
