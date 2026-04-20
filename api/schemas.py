@@ -70,3 +70,54 @@ class JobStatusResponse(BaseModel):
     status: Literal["queued", "running", "succeeded", "failed", "unknown"]
     result: list[ClaimReport] | None = None
     error: str | None = None
+
+
+# --------------------------------------------------------------------------- #
+# Feedback capture (Stage 1 of the human-in-the-loop retraining system)
+# --------------------------------------------------------------------------- #
+class FeedbackPart(BaseModel):
+    """An adjuster-corrected part assessment.
+
+    All fields match the ``PartAssessment`` shape except that the adjuster
+    may drop ``detection_confidence`` / ``damage_probs_all`` — we don't need
+    model probabilities on the corrected side.
+    """
+
+    part: str
+    bbox_xyxy_px: list[int] | None = None
+    bbox_xyxy_norm: list[float] | None = None
+    damage_types: list[str] = Field(
+        default_factory=list,
+        description="Corrected multi-label damage types (e.g. ['dent', 'shatter']).",
+    )
+    primary_damage_type: str | None = None
+    severity: str | None = Field(
+        default=None, description="Corrected severity grade (minor|moderate|severe|total_loss)."
+    )
+    recommendation: Literal["repair", "replace"] | None = None
+    adjuster_notes: str | None = None
+
+
+class FeedbackRequest(BaseModel):
+    """Payload submitted to ``POST /feedback`` when an adjuster corrects a report."""
+
+    claim_id: str = Field(..., min_length=1, max_length=128, description="Chubb-side claim identifier.")
+    adjuster_id: str = Field(
+        ..., min_length=1, max_length=128, description="Identity of the human who corrected the report."
+    )
+    original_report: ClaimReport
+    corrected_parts: list[FeedbackPart] = Field(
+        default_factory=list, description="Replacement/additional per-part annotations."
+    )
+    corrected_overall_assessment: str | None = Field(
+        default=None,
+        description="E.g. 'minor_damage', 'major_damage', 'total_loss' — free-form label from the adjuster UI.",
+    )
+    notes: str | None = Field(default=None, max_length=4000)
+
+
+class FeedbackResponse(BaseModel):
+    feedback_id: str
+    claim_id: str
+    stored_at: str = Field(..., description="URI (file:// or gs://) of the stored bundle.")
+    status: Literal["stored"]

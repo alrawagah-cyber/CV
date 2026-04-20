@@ -39,9 +39,24 @@ async def lifespan(app: FastAPI):
         logger.warning("CDP_LOAD_MODELS=0 set — running API without models (test mode).")
         app.state.assessor = None
 
+    # Feedback store is always loaded (local backend by default; no external deps).
+    try:
+        from api.feedback_store import build_store_from_config, load_feedback_config
+
+        fb_cfg_path = os.environ.get("CDP_FEEDBACK_CONFIG", "configs/feedback.yaml")
+        fb_cfg = load_feedback_config(fb_cfg_path)
+        app.state.feedback_store = build_store_from_config(fb_cfg)
+        app.state.feedback_max_bytes = int(fb_cfg.get("max_image_bytes", 16 * 1024 * 1024))
+        logger.info("Feedback store ready (backend=%s).", fb_cfg.get("backend", "local"))
+    except Exception as exc:
+        logger.exception("Failed to initialize feedback store: %s", exc)
+        app.state.feedback_store = None
+        app.state.feedback_max_bytes = 0
+
     yield
 
     app.state.assessor = None
+    app.state.feedback_store = None
 
 
 def create_app() -> FastAPI:

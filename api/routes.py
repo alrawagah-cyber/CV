@@ -5,17 +5,21 @@ from __future__ import annotations
 import base64
 import logging
 import time
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import PlainTextResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from api import metrics
+from api.feedback_store import utc_now_iso
 from api.middleware import limiter
 from api.schemas import (
     BatchJobResponse,
     ClaimReport,
+    FeedbackRequest,
+    FeedbackResponse,
     HealthResponse,
     JobStatusResponse,
 )
@@ -121,6 +125,101 @@ async def assess_batch(request: Request, files: list[UploadFile] = File(...)) ->
 # --------------------------------------------------------------------------- #
 # Job status
 # --------------------------------------------------------------------------- #
+# --------------------------------------------------------------------------- #
+# Feedback capture — Stage 1 of the human-in-the-loop retraining system.
+#
+# Accepts either:
+#   Content-Type: application/json   → FeedbackRequest body, no image.
+#   Content-Type: multipart/form-data → 'feedback' field (JSON string) + optional 'image' file.
+# --------------------------------------------------------------------------- #
+@router.post(
+    "/feedback",
+    response_model=FeedbackResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["feedback"],
+)
+@limiter.limit("60/minute")
+async def submit_feedback(
+    request: Request,
+    feedback: str | None = Form(default=None),
+    image: UploadFile | None = File(default=None),
+) -> FeedbackResponse:
+    store = getattr(request.app.state, "feedback_store", None)
+    if store is None:
+        metrics.FEEDBACK_TOTAL.labels(outcome="store_unavailable").inc()
+        raise HTTPException(status_code=503, detail="Feedback store not initialized.")
+
+    # Parse body — accept JSON or multipart form.
+    if feedback is not None:
+        try:
+            payload = FeedbackRequest.model_validate_json(feedback)
+        except Exception as exc:
+            metrics.FEEDBACK_TOTAL.labels(outcome="bad_payload").inc()
+            raise HTTPException(status_code=400, detail=f"Invalid feedback JSON: {exc}") from exc
+    else:
+        try:
+            raw = await request.json()
+            payload = FeedbackRequest.model_validate(raw)
+        except Exception as exc:
+            metrics.FEEDBACK_TOTAL.labels(outcome="bad_payload").inc()
+            raise HTTPException(status_code=400, detail=f"Invalid feedback body: {exc}") from exc
+
+    image_bytes: bytes | None = None
+    image_ct: str | None = None
+    if image is not None:
+        max_bytes = getattr(request.app.state, "feedback_max_bytes", 16 * 1024 * 1024)
+        image_bytes = await image.read()
+        if len(image_bytes) > max_bytes:
+            metrics.FEEDBACK_TOTAL.labels(outcome="image_too_large").inc()
+            raise HTTPException(
+                status_code=413, detail=f"Image exceeds limit ({len(image_bytes)} > {max_bytes} bytes)."
+            )
+        if not image.content_type or not image.content_type.startswith("image/"):
+            metrics.FEEDBACK_TOTAL.labels(outcome="bad_image_type").inc()
+            raise HTTPException(status_code=400, detail=f"Unexpected image type {image.content_type!r}.")
+        image_ct = image.content_type
+
+    feedback_id = uuid.uuid4().hex
+    manifest = {
+        "feedback_id": feedback_id,
+        "claim_id": payload.claim_id,
+        "adjuster_id": payload.adjuster_id,
+        "captured_at": utc_now_iso(),
+        "has_image": image_bytes is not None,
+        "notes": payload.notes,
+        "schema_version": "1.0",
+        "corrected_overall_assessment": payload.corrected_overall_assessment,
+        "parts_delta": len(payload.corrected_parts),
+    }
+
+    corrected = {
+        "corrected_parts": [p.model_dump() for p in payload.corrected_parts],
+        "corrected_overall_assessment": payload.corrected_overall_assessment,
+        "notes": payload.notes,
+    }
+    predicted = payload.original_report.model_dump()
+
+    try:
+        uri = store.put_bundle(
+            claim_id=payload.claim_id,
+            feedback_id=feedback_id,
+            manifest=manifest,
+            predicted=predicted,
+            corrected=corrected,
+            image_bytes=image_bytes,
+            image_content_type=image_ct,
+        )
+    except Exception as exc:
+        logger.exception("Failed to persist feedback bundle")
+        metrics.FEEDBACK_TOTAL.labels(outcome="store_error").inc()
+        raise HTTPException(status_code=500, detail=f"Failed to store feedback: {exc}") from exc
+
+    metrics.FEEDBACK_TOTAL.labels(outcome="stored").inc()
+    return FeedbackResponse(
+        feedback_id=feedback_id, claim_id=payload.claim_id, stored_at=uri, status="stored"
+    )
+
+
 @router.get("/jobs/{job_id}", response_model=JobStatusResponse, tags=["assessment"])
 async def job_status(job_id: str) -> JobStatusResponse:
     from celery.result import AsyncResult

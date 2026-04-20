@@ -28,3 +28,9 @@ ASSESSMENT_ERRORS = Counter(
     "Assessment errors by reason.",
     labelnames=("reason",),
 )
+
+FEEDBACK_TOTAL = Counter(
+    "cdp_feedback_total",
+    "Feedback submissions captured.",
+    labelnames=("outcome",),
+)

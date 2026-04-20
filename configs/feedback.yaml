@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------
+# Feedback capture configuration.
+#
+# backend:
+#   local  -- write bundles under local_root (dev, on-prem, tests)
+#   gcs    -- write bundles to a Google Cloud Storage bucket
+# ---------------------------------------------------------------------
+
+backend: local
+local_root: data/feedback
+
+# Production example (overridden by env / Cloud Run secret in deployed env):
+# backend: gcs
+# bucket: chubb-damage-feedback-prod
+# prefix: feedback
+
+# Maximum inbound bytes for an uploaded image accompanying a correction.
+max_image_bytes: 16777216   # 16 MiB
+
+# Retention guidance (informational — enforced by bucket lifecycle rules in prod).
+retention_days: 365
