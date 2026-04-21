@@ -1,0 +1,57 @@
+# Cloud Build only needs source code + configs + Dockerfiles.
+# Exclude everything else to keep uploads under 10 MB.
+
+# Model weights (fetched from GCS at container startup)
+checkpoints/
+weights/
+*.pt
+*.pth
+*.onnx
+
+# Training data (not needed in the container)
+data/layer1/images/
+data/layer1/labels/
+data/layer2/crops/
+data/layer3/crops/
+data/feedback/
+
+# Python artifacts
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Git
+.git/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Experiments
+runs/
+wandb/
+mlruns/
+exports/
+
+# Tests (not needed in the container image)
+tests/
+
+# Docs
+docs/
+*.md
+!README.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
