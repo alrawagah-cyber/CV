@@ -6,7 +6,7 @@
 
 layer1:
   version: yolov8x_v1
-  weights: yolov8x.pt      # will be downloaded by ultralytics on first use
+  weights: checkpoints/layer1/best.pt    # fine-tuned 13-class YOLOv8x (populated by weight fetcher)
   conf_threshold: 0.25
   iou_threshold: 0.45
   img_size: 640
@@ -29,7 +29,7 @@ layer1:
 layer2:
   version: convnextv2_large_v1
   backbone: convnextv2_large.fcmae_ft_in22k_in1k
-  weights: null            # e.g. checkpoints/layer2/layer2_best.pt
+  weights: checkpoints/layer2/best.pt    # fine-tuned ConvNeXt-V2-L damage classifier
   threshold: 0.5
   classes:
     - dent
@@ -45,7 +45,7 @@ layer2:
 layer3:
   version: swinv2_large_v1
   backbone: swinv2_large_window12to24_192to384.ms_in22k_ft_in1k
-  weights: null            # e.g. checkpoints/layer3/layer3_best.pt
+  weights: checkpoints/layer3/best.pt    # fine-tuned Swin V2-L severity model
   grades:
     - minor
     - moderate
