@@ -1,0 +1,8 @@
+# Production feedback config — deployed to Cloud Run.
+# Writes adjuster corrections to the GCS feedback bucket.
+
+backend: gcs
+bucket: melon-491511-cv-feedback
+prefix: feedback
+max_image_bytes: 16777216
+retention_days: 365
