@@ -25,6 +25,7 @@ class PartAssessment(BaseModel):
     detection_confidence: float
     bbox_xyxy_px: list[int]
     bbox_xyxy_norm: list[float]
+    damaged: bool = Field(default=True, description="False if L2 V2 flagged the part as no_damage.")
     damage_types: list[DamageTypeScore]
     damage_probs_all: dict[str, float]
     primary_damage_type: str | None = None
