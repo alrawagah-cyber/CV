@@ -35,4 +35,11 @@ DEFAULT_DAMAGE_CLASSES: list[str] = [
     "misalignment",
 ]
 
+# V2 vocabulary: prepends the explicit "no_damage" class so the multi-label
+# classifier can learn what *undamaged* looks like and stops false-positiving
+# damaged labels on clean parts. The existing 9-class L2 keeps working;
+# deployments that retrain on v2 data will pick up this list.
+NO_DAMAGE_CLASS = "no_damage"
+DEFAULT_DAMAGE_CLASSES_V2: list[str] = [NO_DAMAGE_CLASS, *DEFAULT_DAMAGE_CLASSES]
+
 DEFAULT_SEVERITY_GRADES: list[str] = ["minor", "moderate", "severe", "total_loss"]

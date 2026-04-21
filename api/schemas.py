@@ -81,11 +81,19 @@ class FeedbackPart(BaseModel):
     All fields match the ``PartAssessment`` shape except that the adjuster
     may drop ``detection_confidence`` / ``damage_probs_all`` — we don't need
     model probabilities on the corrected side.
+
+    Set ``damaged=False`` to flag that the model hallucinated damage on a
+    part that is actually clean. These rows become negative examples when
+    the L2 V2 classifier is retrained with the ``no_damage`` class.
     """
 
     part: str
     bbox_xyxy_px: list[int] | None = None
     bbox_xyxy_norm: list[float] | None = None
+    damaged: bool = Field(
+        default=True,
+        description="False if the part is actually undamaged (false positive correction).",
+    )
     damage_types: list[str] = Field(
         default_factory=list,
         description="Corrected multi-label damage types (e.g. ['dent', 'shatter']).",

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from models.class_constants import NO_DAMAGE_CLASS
+
 # Static repair-vs-replace heuristic table.
 # Keyed by (part, damage_type, severity_index). Value is "repair" | "replace".
 # Used only if no trained repair/replace head output is available OR if the
@@ -61,18 +63,36 @@ def build_part_assessment(
     pretrained_baseline: bool,
     use_rule_override: bool = False,
 ) -> dict[str, Any]:
-    """Build the per-part assessment dict."""
-    damage_types = sorted(
-        [(k, v) for k, v in damage_probs.items() if v >= damage_threshold],
-        key=lambda kv: -kv[1],
-    )
-    primary_damage = damage_types[0][0] if damage_types else None
+    """Build the per-part assessment dict.
+
+    If ``damage_probs`` includes the ``no_damage`` class AND that class has
+    the highest probability of any class (and is above 0.5), the part is
+    reported as undamaged: ``damaged=False``, empty ``damage_types``, no
+    severity, and ``recommendation=None``. This prevents the V2 classifier
+    from false-positiving damage labels on visibly clean parts.
+    """
+    nd_prob = damage_probs.get(NO_DAMAGE_CLASS)
+    other_probs = {k: v for k, v in damage_probs.items() if k != NO_DAMAGE_CLASS}
+    max_damage_prob = max(other_probs.values()) if other_probs else 0.0
+    is_clean = nd_prob is not None and nd_prob > max(0.5, max_damage_prob)
+
+    if is_clean:
+        damage_types: list[tuple[str, float]] = []
+        primary_damage = None
+    else:
+        damage_types = sorted(
+            [(k, v) for k, v in other_probs.items() if v >= damage_threshold],
+            key=lambda kv: -kv[1],
+        )
+        primary_damage = damage_types[0][0] if damage_types else None
 
     recommendation = None
     repair_prob = None
     replace_prob = None
 
-    if severity is not None:
+    # Only attach a severity block if the part is damaged.
+    severity_block = None
+    if not is_clean and severity is not None:
         recommendation = severity.get("recommendation")
         repair_prob = severity.get("repair_probability")
         replace_prob = severity.get("replace_probability")
@@ -80,6 +100,12 @@ def build_part_assessment(
             recommendation = rule_repair_or_replace(
                 detection["part"], primary_damage, severity["grade_index"]
             )
+        severity_block = {
+            "grade": severity["grade"],
+            "grade_index": severity["grade_index"],
+            "grade_confidence": round(float(severity["grade_confidence"]), 4),
+            "probs": {k: round(float(v), 4) for k, v in severity["severity_probs"].items()},
+        }
 
     return {
         "part": detection["part"],
@@ -87,19 +113,11 @@ def build_part_assessment(
         "detection_confidence": detection["confidence"],
         "bbox_xyxy_px": list(detection["bbox_xyxy_px"]),
         "bbox_xyxy_norm": list(detection["bbox_xyxy_norm"]),
+        "damaged": not is_clean,
         "damage_types": [{"type": k, "probability": round(float(v), 4)} for k, v in damage_types],
         "damage_probs_all": {k: round(float(v), 4) for k, v in damage_probs.items()},
         "primary_damage_type": primary_damage,
-        "severity": (
-            {
-                "grade": severity["grade"],
-                "grade_index": severity["grade_index"],
-                "grade_confidence": round(float(severity["grade_confidence"]), 4),
-                "probs": {k: round(float(v), 4) for k, v in severity["severity_probs"].items()},
-            }
-            if severity is not None
-            else None
-        ),
+        "severity": severity_block,
         "recommendation": recommendation,
         "repair_probability": None if repair_prob is None else round(float(repair_prob), 4),
         "replace_probability": None if replace_prob is None else round(float(replace_prob), 4),
@@ -118,17 +136,16 @@ def build_report(
     warnings: list[str] | None = None,
 ) -> dict[str, Any]:
     """Top-level JSON report for one image."""
-    n_damaged = sum(1 for p in parts if p.get("primary_damage_type") is not None)
+    n_damaged = sum(1 for p in parts if p.get("damaged", p.get("primary_damage_type") is not None))
     n_replace = sum(1 for p in parts if p.get("recommendation") == "replace")
-    overall = (
-        "clean"
-        if not parts
-        else (
-            "total_loss"
-            if n_replace >= max(3, len(parts) // 2)
-            else ("major_damage" if n_replace >= 1 else "minor_damage")
-        )
-    )
+    if not parts or n_damaged == 0:
+        overall = "clean"
+    elif n_replace >= max(3, len(parts) // 2):
+        overall = "total_loss"
+    elif n_replace >= 1:
+        overall = "major_damage"
+    else:
+        overall = "minor_damage"
     return {
         "image_id": image_id,
         "image_width": image_width,

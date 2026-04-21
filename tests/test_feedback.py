@@ -203,6 +203,37 @@ def test_feedback_json_only(feedback_client):
     assert not list(bundle_dir.glob("image.*"))
 
 
+def test_feedback_no_damage_false_positive_correction(feedback_client):
+    """Adjuster flags a part the model said was damaged as actually clean.
+    This is the core use case for retraining the L2 V2 classifier.
+    """
+    client, tmp_path = feedback_client
+    payload = {
+        "claim_id": "CLM-77",
+        "adjuster_id": "adj_jane",
+        "original_report": _sample_original_report(),
+        "corrected_parts": [
+            {
+                "part": "mirror",
+                "damaged": False,
+                "damage_types": [],
+                "primary_damage_type": None,
+                "severity": None,
+                "recommendation": None,
+                "adjuster_notes": "Mirror is actually fine, model false-positived.",
+            }
+        ],
+        "corrected_overall_assessment": "clean",
+        "notes": "False positive — mirror was undamaged.",
+    }
+    r = client.post("/feedback", json=payload)
+    assert r.status_code == 201, r.text
+    bundle_dir = list((tmp_path / "feedback").rglob("corrected.json"))[0].parent
+    corrected = json.loads((bundle_dir / "corrected.json").read_text())
+    assert corrected["corrected_parts"][0]["damaged"] is False
+    assert corrected["corrected_overall_assessment"] == "clean"
+
+
 def test_feedback_rejects_oversize_image(feedback_client):
     client, _ = feedback_client
     # 2 MiB of zeros; max_image_bytes in the fixture is 1 MiB.
