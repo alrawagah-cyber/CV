@@ -17,6 +17,8 @@ substitutions:
   _REPO: cv-images
   _IMAGE: car-damage-api
   _TAG: latest
+  _RUN_SERVICE: car-damage-api
+  _DEPLOY: "true"
 
 options:
   # Large pip install + model deps: give the build enough disk / CPU.
@@ -48,6 +50,24 @@ steps:
     args:
       - push
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:latest
+
+  # Auto-deploy the :latest image to Cloud Run. Only runs when _DEPLOY=true
+  # (default) so manual `gcloud builds submit --substitutions=_DEPLOY=false`
+  # can still produce a build-only run.
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        if [ "$${_DEPLOY}" = "true" ]; then
+          echo "Deploying ${_IMAGE}:latest to Cloud Run ($${_RUN_SERVICE}, $${_REGION})"
+          gcloud run services update "$${_RUN_SERVICE}" \
+            --region="$${_REGION}" \
+            --image="$${_REGION}-docker.pkg.dev/$$PROJECT_ID/$${_REPO}/$${_IMAGE}:latest"
+        else
+          echo "Skipping deploy (_DEPLOY=$${_DEPLOY})"
+        fi
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:${_TAG}
