@@ -34,3 +34,33 @@ FEEDBACK_TOTAL = Counter(
     "Feedback submissions captured.",
     labelnames=("outcome",),
 )
+
+# --- Drift monitoring ---
+DRIFT_DAMAGE_TYPE = Counter(
+    "cdp_drift_damage_type_total",
+    "Damage type predictions for drift tracking.",
+    labelnames=("damage_type",),
+)
+
+DRIFT_SEVERITY = Counter(
+    "cdp_drift_severity_total",
+    "Severity grade predictions for drift tracking.",
+    labelnames=("grade",),
+)
+
+DRIFT_OVERALL = Counter(
+    "cdp_drift_overall_total",
+    "Overall assessment predictions for drift tracking.",
+    labelnames=("assessment",),
+)
+
+DRIFT_PARTS = Counter(
+    "cdp_drift_parts_total",
+    "Detected part types for drift tracking.",
+    labelnames=("part",),
+)
+
+REVIEW_FLAGS = Counter(
+    "cdp_review_flags_total",
+    "Parts flagged for human review by active learning.",
+)

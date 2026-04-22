@@ -46,6 +46,14 @@ class FeedbackStore(ABC):
     ) -> str:
         """Persist a feedback bundle; return the URI of the bundle directory."""
 
+    @abstractmethod
+    def list_bundles(self) -> list[dict[str, Any]]:
+        """Return summary dicts for every stored feedback bundle."""
+
+    @abstractmethod
+    def get_bundle(self, feedback_id: str) -> dict[str, Any] | None:
+        """Return the full bundle (manifest + predicted + corrected) or ``None``."""
+
 
 class LocalFeedbackStore(FeedbackStore):
     def __init__(self, root: str | Path):
@@ -77,6 +85,49 @@ class LocalFeedbackStore(FeedbackStore):
         uri = bundle.resolve().as_uri()
         logger.info("Stored feedback bundle at %s", uri)
         return uri
+
+    def list_bundles(self) -> list[dict[str, Any]]:
+        bundles: list[dict[str, Any]] = []
+        if not self.root.exists():
+            return bundles
+        for manifest_path in self.root.rglob("manifest.json"):
+            try:
+                manifest = json.loads(manifest_path.read_text())
+            except Exception:
+                logger.warning("Skipping unreadable manifest at %s", manifest_path)
+                continue
+            bundle_dir = manifest_path.parent
+            has_image = any(bundle_dir.glob("image.*"))
+            bundles.append(
+                {
+                    "feedback_id": manifest.get("feedback_id", bundle_dir.name),
+                    "claim_id": manifest.get("claim_id", bundle_dir.parent.name),
+                    "adjuster_id": manifest.get("adjuster_id", ""),
+                    "captured_at": manifest.get("captured_at", ""),
+                    "has_image": has_image,
+                    "parts_delta": manifest.get("parts_delta", 0),
+                    "notes": manifest.get("notes"),
+                }
+            )
+        return bundles
+
+    def get_bundle(self, feedback_id: str) -> dict[str, Any] | None:
+        safe = _sanitize_segment(feedback_id)
+        if not self.root.exists():
+            return None
+        # Search for the bundle directory across all claim_id folders.
+        for candidate in self.root.iterdir():
+            bundle_dir = candidate / safe
+            if bundle_dir.is_dir() and (bundle_dir / "manifest.json").exists():
+                try:
+                    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+                    predicted = json.loads((bundle_dir / "predicted.json").read_text())
+                    corrected = json.loads((bundle_dir / "corrected.json").read_text())
+                except Exception:
+                    logger.warning("Failed to read bundle at %s", bundle_dir)
+                    return None
+                return {"manifest": manifest, "predicted": predicted, "corrected": corrected}
+        return None
 
 
 class GcsFeedbackStore(FeedbackStore):
@@ -126,6 +177,66 @@ class GcsFeedbackStore(FeedbackStore):
         uri = f"gs://{self.bucket_name}/{base}"
         logger.info("Stored feedback bundle at %s", uri)
         return uri
+
+    def list_bundles(self) -> list[dict[str, Any]]:
+        self._ensure_client()
+        bundles: list[dict[str, Any]] = []
+        prefix = f"{self.prefix}/"
+        manifest_suffix = "/manifest.json"
+        blobs = self._client.list_blobs(self._bucket, prefix=prefix)
+        for blob in blobs:
+            if not blob.name.endswith(manifest_suffix):
+                continue
+            try:
+                data = blob.download_as_text()
+                manifest = json.loads(data)
+            except Exception:
+                logger.warning("Skipping unreadable manifest at %s", blob.name)
+                continue
+            bundle_prefix = blob.name[: -len("manifest.json")]
+            has_image = any(
+                True
+                for b in self._client.list_blobs(self._bucket, prefix=bundle_prefix)
+                if b.name.startswith(bundle_prefix + "image.")
+            )
+            bundles.append(
+                {
+                    "feedback_id": manifest.get("feedback_id", ""),
+                    "claim_id": manifest.get("claim_id", ""),
+                    "adjuster_id": manifest.get("adjuster_id", ""),
+                    "captured_at": manifest.get("captured_at", ""),
+                    "has_image": has_image,
+                    "parts_delta": manifest.get("parts_delta", 0),
+                    "notes": manifest.get("notes"),
+                }
+            )
+        return bundles
+
+    def get_bundle(self, feedback_id: str) -> dict[str, Any] | None:
+        self._ensure_client()
+        safe = _sanitize_segment(feedback_id)
+        # Scan for a matching bundle across all claim_id sub-prefixes.
+        prefix = f"{self.prefix}/"
+        target_suffix = f"/{safe}/manifest.json"
+        blobs = self._client.list_blobs(self._bucket, prefix=prefix)
+        manifest_blob = None
+        for blob in blobs:
+            if blob.name.endswith(target_suffix):
+                manifest_blob = blob
+                break
+        if manifest_blob is None:
+            return None
+        bundle_prefix = manifest_blob.name[: -len("manifest.json")]
+        try:
+            manifest = json.loads(manifest_blob.download_as_text())
+            predicted_blob = self._bucket.blob(bundle_prefix + "predicted.json")
+            predicted = json.loads(predicted_blob.download_as_text())
+            corrected_blob = self._bucket.blob(bundle_prefix + "corrected.json")
+            corrected = json.loads(corrected_blob.download_as_text())
+        except Exception:
+            logger.warning("Failed to read bundle at %s", bundle_prefix)
+            return None
+        return {"manifest": manifest, "predicted": predicted, "corrected": corrected}
 
     def _upload_json(self, key: str, body: dict[str, Any]) -> None:
         blob = self._bucket.blob(key)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from inference.uncertainty import compute_l2_uncertainty, compute_l3_uncertainty, should_flag_for_review
 from models.class_constants import NO_DAMAGE_CLASS
 
 # Static repair-vs-replace heuristic table.
@@ -62,6 +63,7 @@ def build_part_assessment(
     severity: dict[str, Any] | None,
     pretrained_baseline: bool,
     use_rule_override: bool = False,
+    active_learning_thresholds: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the per-part assessment dict.
 
@@ -107,6 +109,18 @@ def build_part_assessment(
             "probs": {k: round(float(v), 4) for k, v in severity["severity_probs"].items()},
         }
 
+    # --- Active learning: uncertainty scoring ---
+    uncertainty_score: float | None = None
+    flagged_for_review = False
+    if active_learning_thresholds is not None:
+        l2_unc = compute_l2_uncertainty(damage_probs)
+        severity_probs = severity.get("severity_probs", {}) if severity else {}
+        l3_unc = compute_l3_uncertainty(severity_probs)
+        uncertainty_score = round(max(l2_unc, l3_unc), 4)
+        flagged_for_review = should_flag_for_review(
+            l2_unc, l3_unc, detection["confidence"], active_learning_thresholds
+        )
+
     return {
         "part": detection["part"],
         "class_id": detection["class_id"],
@@ -122,6 +136,8 @@ def build_part_assessment(
         "repair_probability": None if repair_prob is None else round(float(repair_prob), 4),
         "replace_probability": None if replace_prob is None else round(float(replace_prob), 4),
         "pretrained_baseline": pretrained_baseline,
+        "uncertainty_score": uncertainty_score,
+        "flagged_for_review": flagged_for_review,
     }
 
 
@@ -146,6 +162,7 @@ def build_report(
         overall = "major_damage"
     else:
         overall = "minor_damage"
+    review_flags = sum(1 for p in parts if p.get("flagged_for_review", False))
     return {
         "image_id": image_id,
         "image_width": image_width,
@@ -153,6 +170,7 @@ def build_report(
         "parts_detected": len(parts),
         "parts_damaged": n_damaged,
         "parts_requiring_replacement": n_replace,
+        "review_flags_count": review_flags,
         "overall_assessment": overall,
         "parts": parts,
         "pretrained_baseline": pretrained_baseline,
