@@ -103,7 +103,8 @@ def test_downloads_missing_weights(tmp_path: Path, monkeypatch):
     monkeypatch.setitem(sys.modules, "google.cloud.storage", fake_storage)
 
     refreshed = fetch_weights_if_configured(repo_root=tmp_path, bucket="dummy", prefix="test/prefix")
-    assert len(refreshed) == 3
+    # All known targets (.pt + .onnx + .onnx.data) downloaded.
+    assert len(refreshed) == len(DEFAULT_TARGETS)
     for dst in DEFAULT_TARGETS.values():
         assert (tmp_path / dst).exists()
 
