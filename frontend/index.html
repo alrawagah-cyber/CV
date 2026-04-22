@@ -1087,8 +1087,8 @@ function renderReport(filename, fileUrl, rpt) {
 }
 </script>
 
-<!-- Microsoft MSAL.js for SSO (loaded only when CDP_MS_CLIENT_ID is configured) -->
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<!-- Microsoft MSAL.js for SSO -->
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 <script>
 (function() {
   const LS_MS_TOKEN = 'melon_ms_token';
@@ -1193,14 +1193,30 @@ function renderReport(filename, fileUrl, rpt) {
     userSpan.textContent = savedUser;
   }
 
-  // Wait for MSAL script to load before initializing.
-  if (typeof msal !== 'undefined') {
-    initMsal();
-  } else {
-    const msalScript = document.querySelector('script[src*="msal-browser"]');
-    if (msalScript) {
-      msalScript.addEventListener('load', initMsal);
+  // Wait for MSAL script to load before initializing. Try multiple CDNs.
+  function tryInitMsal() {
+    const msalLib = window.msal || window.Msal;
+    if (msalLib) {
+      window.msal = msalLib;
+      initMsal();
+    } else {
+      console.warn('MSAL library not available after script load.');
     }
+  }
+
+  const msalScript = document.querySelector('script[src*="msal-browser"]');
+  if (typeof msal !== 'undefined' || typeof Msal !== 'undefined') {
+    tryInitMsal();
+  } else if (msalScript) {
+    msalScript.addEventListener('load', tryInitMsal);
+    msalScript.addEventListener('error', () => {
+      console.warn('Primary MSAL CDN blocked — trying unpkg fallback...');
+      const fb = document.createElement('script');
+      fb.src = 'https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js';
+      fb.onload = tryInitMsal;
+      fb.onerror = () => console.warn('All MSAL CDNs blocked — SSO unavailable.');
+      document.head.appendChild(fb);
+    });
   }
 })();
 </script>
