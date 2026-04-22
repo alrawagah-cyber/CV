@@ -3,154 +3,299 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Car Damage Assessment — Claims Portal</title>
+<title>Melon — Car Damage Assessment</title>
 <style>
   :root {
-    --primary: #1a56db;
-    --primary-hover: #1e40af;
-    --bg: #f8fafc;
+    --melon-green: #16a34a;
+    --melon-green-dark: #15803d;
+    --melon-red: #dc2626;
+    --bg: #fafaf9;
     --card: #ffffff;
-    --border: #e2e8f0;
-    --text: #1e293b;
-    --muted: #64748b;
-    --green: #16a34a;
-    --yellow: #ca8a04;
-    --red: #dc2626;
+    --border: #e7e5e4;
+    --text: #18181b;
+    --muted: #71717a;
+    --warn: #ca8a04;
     --orange: #ea580c;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-         background: var(--bg); color: var(--text); line-height: 1.5; }
-  .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
-  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
-  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  a { color: var(--melon-green-dark); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Header */
+  .site-header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+  }
+  .site-header .inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .site-header img { height: 44px; width: 44px; }
+  .site-header .brand { font-weight: 700; font-size: 1.15rem; color: var(--melon-green); }
+  .site-header .product { font-size: 0.85rem; color: var(--muted); margin-left: 0.5rem; }
+  .site-header .settings-toggle {
+    margin-left: auto; background: none; border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.35rem 0.75rem; cursor: pointer;
+    font-size: 0.8rem; color: var(--muted);
+  }
+  .site-header .settings-toggle:hover { border-color: var(--melon-green); color: var(--melon-green); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 4rem; }
+
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.35rem; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+
+  /* Settings (hidden by default) */
+  .settings {
+    display: none; gap: 1rem; padding: 1rem; margin-bottom: 1.5rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    align-items: center; flex-wrap: wrap;
+  }
+  .settings.open { display: flex; }
+  .settings label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 0.2rem; }
+  .settings input {
+    padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.85rem; min-width: 320px;
+  }
+  .settings input:focus { outline: none; border-color: var(--melon-green); }
 
   /* Upload zone */
   .upload-zone {
-    border: 2px dashed var(--border); border-radius: 12px; padding: 3rem 2rem;
+    border: 2px dashed var(--border); border-radius: 14px; padding: 3.5rem 2rem;
     text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
     background: var(--card); margin-bottom: 1.5rem;
   }
   .upload-zone:hover, .upload-zone.drag-over {
-    border-color: var(--primary); background: #eff6ff;
+    border-color: var(--melon-green); background: #f0fdf4;
   }
   .upload-zone input { display: none; }
-  .upload-zone p { color: var(--muted); margin-top: 0.5rem; }
-  .upload-zone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .upload-zone .icon { font-size: 2.75rem; margin-bottom: 0.5rem; }
+  .upload-zone strong { font-size: 1.05rem; display: block; margin-bottom: 0.25rem; }
+  .upload-zone p { color: var(--muted); font-size: 0.9rem; }
 
-  /* Config bar */
-  .config-bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
-  .config-bar label { font-size: 0.85rem; color: var(--muted); }
-  .config-bar input[type="text"] {
-    padding: 0.4rem 0.75rem; border: 1px solid var(--border); border-radius: 6px;
-    font-size: 0.85rem; width: 320px;
+  /* Thumbnails */
+  .preview-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .preview-thumb-wrap { position: relative; }
+  .preview-thumb {
+    width: 100px; height: 75px; object-fit: cover; border-radius: 8px;
+    border: 1px solid var(--border);
   }
-  .config-bar input[type="text"]:focus { outline: none; border-color: var(--primary); }
+  .preview-thumb-wrap .remove {
+    position: absolute; top: -6px; right: -6px; width: 20px; height: 20px;
+    background: var(--melon-red); color: #fff; border-radius: 50%;
+    border: none; cursor: pointer; font-size: 0.75rem; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
 
   /* Button */
-  .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.5rem;
-         background: var(--primary); color: #fff; border: none; border-radius: 8px;
-         font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-  .btn:hover { background: var(--primary-hover); }
-  .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 1.6rem; background: var(--melon-green); color: #fff;
+    border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .btn:hover:not(:disabled) { background: var(--melon-green-dark); }
+  .btn:disabled { background: #a1a1aa; cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+  }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--melon-green); color: var(--melon-green); background: transparent; }
+  .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
 
-  /* Preview row */
-  .preview-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-  .preview-thumb {
-    width: 100px; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);
+  /* Status banner */
+  .status { padding: 0.75rem 1rem; border-radius: 8px; margin: 1rem 0;
+            font-size: 0.85rem; display: none; }
+  .status.info { display: block; background: #f0fdf4; color: var(--melon-green-dark); border: 1px solid #bbf7d0; }
+  .status.error { display: block; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .status.success { display: block; background: #f0fdf4; color: var(--melon-green-dark); border: 1px solid #bbf7d0; }
+
+  /* Report card */
+  .report {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .report h2 { font-size: 1.05rem; margin-bottom: 0.75rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+  /* Annotated image + parts panel */
+  .report-body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.5rem; }
+  @media (max-width: 900px) { .report-body { grid-template-columns: 1fr; } }
+  .canvas-wrap {
+    position: relative; background: #f4f4f5; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .canvas-wrap canvas { width: 100%; display: block; }
+
+  /* Stat row */
+  .stats { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem;
+           padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .stat .val { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+  .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase;
+               letter-spacing: 0.03em; margin-top: 0.25rem; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 0.25rem 0.7rem; border-radius: 999px;
+           font-size: 0.72rem; font-weight: 600; text-transform: capitalize;
+           letter-spacing: 0.02em; }
+  .badge-clean { background: #dcfce7; color: var(--melon-green-dark); }
+  .badge-minor_damage, .badge-minor { background: #dcfce7; color: var(--melon-green-dark); }
+  .badge-moderate { background: #fef9c3; color: var(--warn); }
+  .badge-major_damage, .badge-severe { background: #fed7aa; color: var(--orange); }
+  .badge-total_loss { background: #fecaca; color: var(--melon-red); }
+  .badge-repair { background: #dcfce7; color: var(--melon-green-dark); }
+  .badge-replace { background: #fecaca; color: var(--melon-red); }
+  .badge-baseline { background: #fef3c7; color: #92400e; }
+  .badge-clean-part { background: #f1f5f9; color: var(--muted); }
+
+  /* Parts list (right panel) */
+  .parts-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .part-card {
+    padding: 0.75rem; border: 1px solid var(--border); border-radius: 10px;
+    background: #fafaf9; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .part-card:hover { border-color: var(--melon-green); }
+  .part-card.selected { border-color: var(--melon-green); box-shadow: 0 0 0 2px rgba(22,163,74,0.15); }
+  .part-card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; gap: 0.5rem; }
+  .part-card strong { font-weight: 600; font-size: 0.9rem; }
+  .part-card .meta { font-size: 0.75rem; color: var(--muted); }
+  .damage-list { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-top: 0.25rem; }
+  .damage-chip {
+    background: #fff; border: 1px solid var(--border);
+    padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.72rem;
   }
 
-  /* Status */
-  .status { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem;
-            font-size: 0.85rem; display: none; }
-  .status.info { display: block; background: #eff6ff; color: #1e40af; }
-  .status.error { display: block; background: #fef2f2; color: #991b1b; }
-  .status.success { display: block; background: #f0fdf4; color: #166534; }
+  /* Feedback buttons on each part */
+  .feedback-row { margin-top: 0.5rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .fb-btn {
+    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.25rem 0.6rem; font-size: 0.72rem; cursor: pointer; color: var(--muted);
+  }
+  .fb-btn:hover { border-color: var(--melon-green); color: var(--melon-green); }
+  .fb-btn.active-correct { background: var(--melon-green); color: #fff; border-color: var(--melon-green); }
+  .fb-btn.active-clean { background: var(--muted); color: #fff; border-color: var(--muted); }
 
-  /* Results */
-  .report { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-            padding: 1.5rem; margin-bottom: 1.5rem; }
-  .report h2 { font-size: 1.1rem; margin-bottom: 1rem; }
-  .report-header { display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1rem; }
-  .report-stat { text-align: center; }
-  .report-stat .val { font-size: 1.8rem; font-weight: 700; }
-  .report-stat .lbl { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
-
-  .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px;
-           font-size: 0.75rem; font-weight: 600; }
-  .badge-minor { background: #dcfce7; color: var(--green); }
-  .badge-moderate { background: #fef9c3; color: var(--yellow); }
-  .badge-severe { background: #fed7aa; color: var(--orange); }
-  .badge-total_loss { background: #fecaca; color: var(--red); }
-  .badge-repair { background: #dbeafe; color: #1d4ed8; }
-  .badge-replace { background: #fecaca; color: var(--red); }
-  .badge-baseline { background: #fef3c7; color: #92400e; }
-
-  /* Parts table */
-  .parts-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  .parts-table th { text-align: left; padding: 0.5rem; border-bottom: 2px solid var(--border);
-                     color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
-  .parts-table td { padding: 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
-  .damage-list { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-  .damage-chip { background: #f1f5f9; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+  /* Submit feedback bar */
+  .feedback-bar {
+    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; align-items: center;
+  }
+  .feedback-bar .hint { font-size: 0.78rem; color: var(--muted); }
 
   /* JSON toggle */
-  .json-toggle { cursor: pointer; color: var(--primary); font-size: 0.85rem; margin-top: 0.5rem; }
-  .json-block { display: none; margin-top: 0.5rem; background: #f8fafc; border: 1px solid var(--border);
-                 border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: 0.78rem;
-                 font-family: 'SF Mono', Monaco, 'Courier New', monospace; max-height: 400px; }
+  .json-toggle { cursor: pointer; color: var(--melon-green-dark); font-size: 0.8rem; margin-top: 0.75rem;
+                 display: inline-block; }
+  .json-block {
+    display: none; margin-top: 0.5rem; background: #18181b; color: #fafaf9;
+    border-radius: 8px; padding: 1rem; overflow: auto;
+    font-size: 0.75rem; font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    max-height: 400px;
+  }
   .json-block.open { display: block; }
 
-  @media (max-width: 640px) {
-    .config-bar input[type="text"] { width: 100%; }
-    .report-header { gap: 1rem; }
-    .preview-thumb { width: 70px; height: 52px; }
-  }
+  /* Footer */
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 2rem 1rem; border-top: 1px solid var(--border); background: #fff; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Car Damage Assessment</h1>
-  <p class="subtitle">Upload claim photos for automated damage analysis</p>
 
-  <div class="config-bar">
+<header class="site-header">
+  <div class="inner">
+    <!-- Inline SVG Melon logo as a fallback; replace with assets/melon-logo.png once committed -->
+    <img src="/assets/melon-logo.png" alt="Melon"
+         onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22&gt;&lt;circle cx=%2220%22 cy=%2220%22 r=%2218%22 fill=%22none%22 stroke=%22%2316a34a%22 stroke-width=%222.5%22/&gt;&lt;path d=%22M2.5 22 a17.5 17.5 0 0 0 35 0 z%22 fill=%22%23dc2626%22/&gt;&lt;text x=%2220%22 y=%2217%22 text-anchor=%22middle%22 font-family=%22cursive%22 font-size=%2210%22 font-weight=%22700%22 fill=%22%2316a34a%22&gt;melon&lt;/text&gt;&lt;/svg&gt;'" />
+    <span class="brand">Melon</span>
+    <span class="product">· Car Damage Assessment</span>
+    <button class="settings-toggle" id="settings-toggle" title="API settings">Settings</button>
+  </div>
+</header>
+
+<main class="container">
+  <h1>Assess a claim photo</h1>
+  <p class="subtitle">Upload damaged-vehicle photos. Review the AI-generated
+  assessment. Correct anything wrong — corrections feed retraining.</p>
+
+  <div class="settings" id="settings">
     <div>
-      <label for="api-url">API URL</label><br>
-      <input type="text" id="api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+      <label for="api-url">API base URL</label>
+      <input type="text" id="api-url" placeholder="https://car-damage-api-...run.app">
     </div>
     <div>
-      <label for="api-key">API Key (optional)</label><br>
-      <input type="text" id="api-key" placeholder="Leave blank if auth disabled">
+      <label for="api-key">API key</label>
+      <input type="password" id="api-key" placeholder="Paste your X-API-Key">
     </div>
+    <button class="btn btn-ghost btn-sm" id="settings-save">Save</button>
   </div>
 
   <div class="upload-zone" id="drop-zone">
-    <div class="icon">&#128247;</div>
+    <div class="icon">🚗</div>
     <strong>Drop claim photos here or click to browse</strong>
-    <p>Supports JPG, PNG — up to 20 MB each</p>
-    <input type="file" id="file-input" accept="image/*" multiple>
+    <p>JPG or PNG, up to 16 MB</p>
+    <input type="file" id="file-input" accept="image/jpeg,image/png" multiple>
   </div>
 
   <div class="preview-row" id="preview-row"></div>
 
-  <button class="btn" id="assess-btn" disabled>
-    <span id="btn-text">Assess Damage</span>
-  </button>
+  <button class="btn" id="assess-btn" disabled>Assess damage</button>
 
   <div class="status" id="status"></div>
   <div id="results"></div>
-</div>
+</main>
+
+<footer>
+  © Melon Insurtech · Provided for Chubb · <a href="/docs" target="_blank">API docs</a>
+</footer>
 
 <script>
+/* ------------------------------------------------------------------ */
+/*  Configuration (persisted in localStorage)                          */
+/* ------------------------------------------------------------------ */
+const LS_URL = 'melon_api_url';
+const LS_KEY = 'melon_api_key';
+
+function getApiUrl() {
+  const saved = localStorage.getItem(LS_URL);
+  if (saved) return saved.replace(/\/+$/, '');
+  // Default to the current host — works when served from the same Cloud Run service.
+  return window.location.origin;
+}
+function getApiKey() {
+  return localStorage.getItem(LS_KEY) || '';
+}
+
+document.getElementById('api-url').value = getApiUrl();
+document.getElementById('api-key').value = getApiKey();
+
+document.getElementById('settings-toggle').addEventListener('click', () => {
+  document.getElementById('settings').classList.toggle('open');
+});
+document.getElementById('settings-save').addEventListener('click', () => {
+  localStorage.setItem(LS_URL, document.getElementById('api-url').value.replace(/\/+$/, ''));
+  localStorage.setItem(LS_KEY, document.getElementById('api-key').value);
+  document.getElementById('settings').classList.remove('open');
+  setStatus('success', 'Settings saved.');
+});
+
+function setStatus(kind, msg) {
+  const s = document.getElementById('status');
+  s.className = 'status ' + kind;
+  s.textContent = msg;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Upload handling                                                    */
+/* ------------------------------------------------------------------ */
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 const previewRow = document.getElementById('preview-row');
 const assessBtn = document.getElementById('assess-btn');
-const btnText = document.getElementById('btn-text');
-const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
-let selectedFiles = [];
 
+let selectedFiles = [];
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -162,94 +307,260 @@ fileInput.addEventListener('change', () => handleFiles(fileInput.files));
 
 function handleFiles(files) {
   selectedFiles = [...files].filter(f => f.type.startsWith('image/'));
+  renderPreviews();
+  assessBtn.disabled = selectedFiles.length === 0;
+}
+function renderPreviews() {
   previewRow.innerHTML = '';
-  selectedFiles.forEach(f => {
+  selectedFiles.forEach((f, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'preview-thumb-wrap';
     const img = document.createElement('img');
     img.className = 'preview-thumb';
     img.src = URL.createObjectURL(f);
-    previewRow.appendChild(img);
+    const rm = document.createElement('button');
+    rm.className = 'remove';
+    rm.textContent = '×';
+    rm.title = 'Remove';
+    rm.onclick = () => {
+      selectedFiles.splice(idx, 1);
+      renderPreviews();
+      assessBtn.disabled = selectedFiles.length === 0;
+    };
+    wrap.appendChild(img); wrap.appendChild(rm);
+    previewRow.appendChild(wrap);
   });
-  assessBtn.disabled = selectedFiles.length === 0;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Assess call                                                        */
+/* ------------------------------------------------------------------ */
 assessBtn.addEventListener('click', async () => {
-  const apiUrl = document.getElementById('api-url').value.replace(/\/+$/, '');
-  const apiKey = document.getElementById('api-key').value.trim();
+  const apiUrl = getApiUrl();
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    setStatus('error', 'No API key set. Click Settings and paste the key you received from Melon.');
+    return;
+  }
   assessBtn.disabled = true;
-  btnText.textContent = 'Processing...';
-  statusEl.className = 'status info';
-  statusEl.textContent = `Sending ${selectedFiles.length} image(s) to ${apiUrl}...`;
+  const original = assessBtn.textContent;
+  assessBtn.textContent = 'Processing...';
+  setStatus('info', `Sending ${selectedFiles.length} photo(s)...`);
   resultsEl.innerHTML = '';
 
-  const reports = [];
   for (const file of selectedFiles) {
+    const fileUrl = URL.createObjectURL(file);
     try {
       const form = new FormData();
       form.append('file', file);
-      const headers = {};
-      if (apiKey) headers['x-api-key'] = apiKey;
-      const res = await fetch(`${apiUrl}/assess`, { method: 'POST', body: form, headers });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || res.statusText); }
-      reports.push({ file: file.name, report: await res.json() });
+      const res = await fetch(`${apiUrl}/assess`, {
+        method: 'POST',
+        body: form,
+        headers: { 'x-api-key': apiKey },
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.detail || `${res.status} ${res.statusText}`);
+      }
+      const report = await res.json();
+      resultsEl.appendChild(renderReport(file.name, fileUrl, report));
     } catch (err) {
-      reports.push({ file: file.name, error: err.message });
+      resultsEl.appendChild(renderError(file.name, err.message));
     }
   }
 
-  statusEl.className = 'status success';
-  statusEl.textContent = `Done — ${reports.filter(r => r.report).length}/${reports.length} succeeded.`;
-  reports.forEach(r => resultsEl.appendChild(r.error ? renderError(r) : renderReport(r)));
+  setStatus('success', 'Done.');
   assessBtn.disabled = false;
-  btnText.textContent = 'Assess Damage';
+  assessBtn.textContent = original;
 });
 
-function renderError(r) {
-  const div = document.createElement('div');
-  div.className = 'status error';
-  div.textContent = `${r.file}: ${r.error}`;
-  return div;
+function renderError(name, msg) {
+  const d = document.createElement('div');
+  d.className = 'status error';
+  d.style.display = 'block';
+  d.textContent = `${name}: ${msg}`;
+  return d;
 }
 
-function severityBadge(grade) {
-  return `<span class="badge badge-${grade}">${grade.replace('_', ' ')}</span>`;
-}
-function recBadge(rec) {
-  if (!rec) return '';
-  return `<span class="badge badge-${rec}">${rec}</span>`;
-}
+/* ------------------------------------------------------------------ */
+/*  Report renderer                                                    */
+/* ------------------------------------------------------------------ */
+const PART_COLORS = [
+  '#16a34a', '#ea580c', '#dc2626', '#2563eb', '#9333ea',
+  '#0891b2', '#ca8a04', '#db2777', '#059669', '#7c3aed',
+];
 
-function renderReport(r) {
-  const rpt = r.report;
-  const div = document.createElement('div');
-  div.className = 'report';
-  const baselineWarning = rpt.pretrained_baseline
-    ? ' <span class="badge badge-baseline">BASELINE (not fine-tuned)</span>' : '';
-  div.innerHTML = `
-    <h2>${r.file}${baselineWarning}</h2>
-    <div class="report-header">
-      <div class="report-stat"><div class="val">${rpt.parts_detected}</div><div class="lbl">Parts Detected</div></div>
-      <div class="report-stat"><div class="val">${rpt.parts_damaged}</div><div class="lbl">Parts Damaged</div></div>
-      <div class="report-stat"><div class="val">${rpt.parts_requiring_replacement}</div><div class="lbl">Need Replacement</div></div>
-      <div class="report-stat"><div class="val">${severityBadge(rpt.overall_assessment)}</div><div class="lbl">Overall</div></div>
-      ${rpt.inference_ms ? `<div class="report-stat"><div class="val">${rpt.inference_ms}</div><div class="lbl">ms</div></div>` : ''}
+function renderReport(filename, fileUrl, rpt) {
+  const card = document.createElement('div');
+  card.className = 'report';
+
+  const baselineFlag = rpt.pretrained_baseline
+    ? ' <span class="badge badge-baseline">baseline</span>' : '';
+
+  card.innerHTML = `
+    <h2>${filename} <span class="badge badge-${rpt.overall_assessment}">${rpt.overall_assessment.replace('_', ' ')}</span>${baselineFlag}</h2>
+    <div class="stats">
+      <div class="stat"><div class="val">${rpt.parts_detected}</div><div class="lbl">Detected</div></div>
+      <div class="stat"><div class="val">${rpt.parts_damaged}</div><div class="lbl">Damaged</div></div>
+      <div class="stat"><div class="val">${rpt.parts_requiring_replacement}</div><div class="lbl">Replace</div></div>
+      <div class="stat"><div class="val">${Math.round((rpt.inference_ms || 0)/1000)}s</div><div class="lbl">Time</div></div>
     </div>
-    ${rpt.parts.length ? `<table class="parts-table">
-      <thead><tr><th>Part</th><th>Conf</th><th>Damage Types</th><th>Severity</th><th>Action</th></tr></thead>
-      <tbody>${rpt.parts.map(p => `<tr>
-        <td><strong>${p.part}</strong></td>
-        <td>${(p.detection_confidence * 100).toFixed(0)}%</td>
-        <td><div class="damage-list">${p.damage_types.map(d =>
-          `<span class="damage-chip">${d.type} ${(d.probability * 100).toFixed(0)}%</span>`).join('')}</div></td>
-        <td>${p.severity ? severityBadge(p.severity.grade) : '-'}</td>
-        <td>${recBadge(p.recommendation)}</td>
-      </tr>`).join('')}</tbody>
-    </table>` : '<p style="color:var(--muted)">No parts detected.</p>'}
-    <div class="json-toggle" onclick="this.nextElementSibling.classList.toggle('open')">
-      &#9654; Raw JSON
+    <div class="report-body">
+      <div class="canvas-wrap"><canvas></canvas></div>
+      <div>
+        <div class="parts-list"></div>
+        <div class="feedback-bar">
+          <div class="hint">Click any part to highlight; use Clean/Correct buttons to flag model errors.</div>
+          <button class="btn btn-ghost btn-sm submit-fb">Submit feedback</button>
+        </div>
+      </div>
     </div>
+    <span class="json-toggle">▶ Raw JSON</span>
     <pre class="json-block">${JSON.stringify(rpt, null, 2)}</pre>
   `;
-  return div;
+
+  const canvas = card.querySelector('canvas');
+  const partsList = card.querySelector('.parts-list');
+  const jsonToggle = card.querySelector('.json-toggle');
+  const jsonBlock = card.querySelector('.json-block');
+  jsonToggle.onclick = () => jsonBlock.classList.toggle('open');
+
+  /* Feedback state kept local per-report card. */
+  const feedbackState = new Map(); // index -> 'correct' | 'clean'
+
+  /* Draw image + bboxes onto canvas */
+  const img = new Image();
+  img.onload = () => {
+    const W = img.naturalWidth, H = img.naturalHeight;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    drawAllBoxes(ctx, rpt, null);
+  };
+  img.src = fileUrl;
+
+  function drawAllBoxes(ctx, rpt, highlightIdx) {
+    ctx.drawImage(img, 0, 0);
+    rpt.parts.forEach((p, i) => {
+      const [x1, y1, x2, y2] = p.bbox_xyxy_px;
+      const color = PART_COLORS[i % PART_COLORS.length];
+      ctx.strokeStyle = color;
+      ctx.lineWidth = highlightIdx === i ? 8 : 4;
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      ctx.font = 'bold 28px system-ui, sans-serif';
+      ctx.fillStyle = color;
+      ctx.fillText(p.part, x1 + 6, y1 + 32);
+    });
+  }
+
+  /* Render parts list */
+  rpt.parts.forEach((p, i) => {
+    const color = PART_COLORS[i % PART_COLORS.length];
+    const dt = p.damage_types || [];
+    const isClean = p.damaged === false;
+    const card_ = document.createElement('div');
+    card_.className = 'part-card';
+    card_.innerHTML = `
+      <div class="part-card-row">
+        <div><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:0.5rem"></span><strong>${p.part}</strong></div>
+        <div>${isClean
+          ? '<span class="badge badge-clean-part">clean</span>'
+          : (p.severity ? `<span class="badge badge-${p.severity.grade}">${p.severity.grade.replace('_',' ')}</span>` : '') +
+            (p.recommendation ? ` <span class="badge badge-${p.recommendation}">${p.recommendation}</span>` : '')
+        }</div>
+      </div>
+      <div class="meta">Detection: ${Math.round(p.detection_confidence * 100)}%</div>
+      ${!isClean && dt.length ? `<div class="damage-list">${dt.map(d =>
+          `<span class="damage-chip">${d.type} ${Math.round(d.probability*100)}%</span>`).join('')}</div>` : ''}
+      <div class="feedback-row">
+        <button class="fb-btn fb-correct">✓ Correct</button>
+        <button class="fb-btn fb-clean">Actually clean</button>
+      </div>
+    `;
+    card_.onclick = (e) => {
+      if (e.target.classList.contains('fb-btn')) return; // let button handlers run
+      const allCards = partsList.querySelectorAll('.part-card');
+      allCards.forEach(c => c.classList.remove('selected'));
+      card_.classList.add('selected');
+      const ctx = canvas.getContext('2d');
+      drawAllBoxes(ctx, rpt, i);
+    };
+    card_.querySelector('.fb-correct').onclick = (e) => {
+      e.stopPropagation();
+      feedbackState.set(i, feedbackState.get(i) === 'correct' ? null : 'correct');
+      updateFbButtons();
+    };
+    card_.querySelector('.fb-clean').onclick = (e) => {
+      e.stopPropagation();
+      feedbackState.set(i, feedbackState.get(i) === 'clean' ? null : 'clean');
+      updateFbButtons();
+    };
+    partsList.appendChild(card_);
+
+    function updateFbButtons() {
+      const state = feedbackState.get(i);
+      card_.querySelector('.fb-correct').classList.toggle('active-correct', state === 'correct');
+      card_.querySelector('.fb-clean').classList.toggle('active-clean', state === 'clean');
+    }
+  });
+
+  /* Submit feedback handler */
+  card.querySelector('.submit-fb').onclick = async () => {
+    if (feedbackState.size === 0) {
+      setStatus('info', 'Nothing marked — click "Actually clean" or "Correct" on at least one part first.');
+      return;
+    }
+    const corrected_parts = [];
+    feedbackState.forEach((state, i) => {
+      const p = rpt.parts[i];
+      if (state === 'clean') {
+        corrected_parts.push({
+          part: p.part,
+          bbox_xyxy_px: p.bbox_xyxy_px,
+          damaged: false,
+          damage_types: [],
+          primary_damage_type: null,
+          severity: null,
+          recommendation: null,
+          adjuster_notes: 'Marked clean via Melon UI',
+        });
+      } else if (state === 'correct') {
+        corrected_parts.push({
+          part: p.part,
+          bbox_xyxy_px: p.bbox_xyxy_px,
+          damaged: p.damaged !== false,
+          damage_types: (p.damage_types || []).map(d => d.type),
+          primary_damage_type: p.primary_damage_type,
+          severity: p.severity ? p.severity.grade : null,
+          recommendation: p.recommendation,
+          adjuster_notes: 'Confirmed by Melon UI',
+        });
+      }
+    });
+
+    const body = {
+      claim_id: `DEMO-${filename}-${Date.now()}`,
+      adjuster_id: 'melon-ui',
+      original_report: rpt,
+      corrected_parts,
+      corrected_overall_assessment: rpt.overall_assessment,
+      notes: 'Submitted via Melon demo UI',
+    };
+    try {
+      const res = await fetch(`${getApiUrl()}/feedback`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': getApiKey() },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const data = await res.json();
+      setStatus('success', `Feedback saved (${data.feedback_id.slice(0,8)}…). It will be used in the next retraining cycle.`);
+    } catch (err) {
+      setStatus('error', `Feedback submission failed: ${err.message}`);
+    }
+  };
+
+  return card;
 }
 </script>
 </body>

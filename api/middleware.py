@@ -67,7 +67,8 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
 
 
 API_KEY_HEADER = "x-api-key"
-_OPEN_PATHS = {"/health", "/docs", "/openapi.json", "/redoc"}
+_OPEN_PATHS = {"/", "/health", "/docs", "/openapi.json", "/redoc", "/ui"}
+_OPEN_PREFIXES = ("/docs", "/assets/", "/static/", "/metrics")
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
@@ -76,6 +77,10 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     Set the env var ``CDP_API_KEYS`` to a comma-separated list of allowed keys.
     If the var is unset or empty, auth is **disabled** (open access) so local
     development doesn't require a key.
+
+    Open paths (no key needed): /, /health, /ui, /docs, /openapi.json,
+    /redoc, /metrics, /assets/*, /static/*. Everything else requires the
+    ``X-API-Key`` header.
     """
 
     async def dispatch(
@@ -89,7 +94,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if not raw:
             return await call_next(request)
 
-        if request.url.path in _OPEN_PATHS or request.url.path.startswith("/docs"):
+        path = request.url.path
+        if path in _OPEN_PATHS or any(path.startswith(p) for p in _OPEN_PREFIXES):
             return await call_next(request)
 
         valid_keys = {k.strip() for k in raw.split(",") if k.strip()}

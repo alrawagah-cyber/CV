@@ -102,14 +102,19 @@ def create_app() -> FastAPI:
 
     app.include_router(router)
 
-    # Serve the web frontend at /ui (single-file, no build step).
+    # Web UI: HTML at /ui, static assets (logo, css, ...) under /assets/.
     from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
 
-    frontend_path = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    frontend_html = frontend_dir / "index.html"
 
     @app.get("/ui", include_in_schema=False)
     async def ui():
-        return FileResponse(frontend_path, media_type="text/html")
+        return FileResponse(frontend_html, media_type="text/html")
+
+    if frontend_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(frontend_dir)), name="ui-assets")
 
     return app
 
