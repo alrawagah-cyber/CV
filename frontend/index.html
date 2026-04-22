@@ -1087,8 +1087,8 @@ function renderReport(filename, fileUrl, rpt) {
 }
 </script>
 
-<!-- Microsoft MSAL.js for SSO (loaded only when CDP_MS_CLIENT_ID is configured) -->
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<!-- Microsoft MSAL.js for SSO (self-hosted, no CDN dependency) -->
+<script src="/assets/msal-browser.min.js"></script>
 <script>
 (function() {
   const LS_MS_TOKEN = 'melon_ms_token';
@@ -1193,14 +1193,12 @@ function renderReport(filename, fileUrl, rpt) {
     userSpan.textContent = savedUser;
   }
 
-  // Wait for MSAL script to load before initializing.
+  // MSAL is self-hosted at /assets/msal-browser.min.js (loaded synchronously
+  // before this script). Initialize immediately.
   if (typeof msal !== 'undefined') {
     initMsal();
   } else {
-    const msalScript = document.querySelector('script[src*="msal-browser"]');
-    if (msalScript) {
-      msalScript.addEventListener('load', initMsal);
-    }
+    console.warn('MSAL library not loaded — Microsoft SSO disabled.');
   }
 })();
 </script>
