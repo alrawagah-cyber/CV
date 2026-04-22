@@ -37,12 +37,14 @@ DEFAULT_TARGETS: dict[str, str] = {
     "layer1/best.pt": "checkpoints/layer1/best.pt",
     "layer2/best.pt": "checkpoints/layer2/best.pt",
     "layer3/best.pt": "checkpoints/layer3/best.pt",
-    # ONNX exports (optional — fetcher tolerates missing blobs)
-    "layer1/best.onnx": "checkpoints/layer1/best.onnx",
-    "layer2/best.onnx": "checkpoints/layer2/best.onnx",
-    "layer2/best.onnx.data": "checkpoints/layer2/layer2_damage.onnx.data",
-    "layer3/best.onnx": "checkpoints/layer3/best.onnx",
-    "layer3/best.onnx.data": "checkpoints/layer3/layer3_severity.onnx.data",
+    # ONNX exports deferred — downloading ~1.8GB extra at cold start causes
+    # Cloud Run startup timeout. Enable once we bake ONNX into the image or
+    # move to GPU Cloud Run (where startup budget is larger).
+    # "layer1/best.onnx": "checkpoints/layer1/best.onnx",
+    # "layer2/best.onnx": "checkpoints/layer2/best.onnx",
+    # "layer2/best.onnx.data": "checkpoints/layer2/layer2_damage.onnx.data",
+    # "layer3/best.onnx": "checkpoints/layer3/best.onnx",
+    # "layer3/best.onnx.data": "checkpoints/layer3/layer3_severity.onnx.data",
 }
 
 

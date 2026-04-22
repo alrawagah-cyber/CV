@@ -6,7 +6,7 @@
 
 layer1:
   version: yolov8x_v1
-  weights: checkpoints/layer1/best.onnx  # ONNX export — ultralytics auto-detects, ~2x faster CPU inference
+  weights: checkpoints/layer1/best.pt   # .pt for reliability; ONNX deferred to future optimization
   conf_threshold: 0.25
   iou_threshold: 0.45
   img_size: 640
