@@ -46,3 +46,6 @@ requests>=2.31
 
 # --- Google Cloud (weight fetching + feedback store in production) ---
 google-cloud-storage>=2.14
+
+# --- Auth (Microsoft SSO token verification) ---
+PyJWT[crypto]>=2.8

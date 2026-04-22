@@ -68,7 +68,7 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
 
 API_KEY_HEADER = "x-api-key"
 _OPEN_PATHS = {"/", "/health", "/docs", "/openapi.json", "/redoc", "/ui", "/admin"}
-_OPEN_PREFIXES = ("/docs", "/assets/", "/static/", "/metrics", "/admin/")
+_OPEN_PREFIXES = ("/docs", "/assets/", "/static/", "/metrics", "/admin/", "/auth/")
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
@@ -91,17 +91,33 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         import os
 
         raw = os.environ.get("CDP_API_KEYS", "")
-        if not raw:
+        ms_enabled = bool(os.environ.get("CDP_MS_CLIENT_ID", ""))
+
+        if not raw and not ms_enabled:
             return await call_next(request)
 
         path = request.url.path
         if path in _OPEN_PATHS or any(path.startswith(p) for p in _OPEN_PREFIXES):
             return await call_next(request)
 
-        valid_keys = {k.strip() for k in raw.split(",") if k.strip()}
-        provided = request.headers.get(API_KEY_HEADER)
-        if not provided or provided not in valid_keys:
-            from fastapi.responses import JSONResponse
+        # Check API key first (fast path for backend integrations).
+        if raw:
+            valid_keys = {k.strip() for k in raw.split(",") if k.strip()}
+            provided = request.headers.get(API_KEY_HEADER)
+            if provided and provided in valid_keys:
+                return await call_next(request)
 
-            return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
-        return await call_next(request)
+        # Check Microsoft Bearer token (browser SSO).
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer ") and ms_enabled:
+            from api.ms_auth import verify_ms_token
+
+            token = auth_header[7:]
+            claims = verify_ms_token(token)
+            if claims is not None:
+                request.state.user_email = claims.get("_verified_email", "")
+                return await call_next(request)
+
+        from fastapi.responses import JSONResponse
+
+        return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})

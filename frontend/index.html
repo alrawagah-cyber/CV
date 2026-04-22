@@ -272,6 +272,8 @@
     <span class="product" data-i18n="product">· Car Damage Assessment</span>
     <button class="settings-toggle" id="settings-toggle" title="API settings" data-i18n="settings">Settings</button>
     <button class="lang-toggle" id="lang-toggle" title="Toggle language">العربية</button>
+    <button class="settings-toggle" id="ms-login-btn" style="display:none;" title="Sign in with Microsoft">Sign in</button>
+    <span id="ms-user" style="display:none;font-size:0.8rem;color:var(--melon-green);margin-inline-start:0.5rem;"></span>
   </div>
 </header>
 
@@ -1083,6 +1085,116 @@ function renderReport(filename, fileUrl, rpt) {
 
   return card;
 }
+</script>
+
+<!-- Microsoft MSAL.js for SSO (loaded only when CDP_MS_CLIENT_ID is configured) -->
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script>
+(function() {
+  const LS_MS_TOKEN = 'melon_ms_token';
+  const LS_MS_USER = 'melon_ms_user';
+  const loginBtn = document.getElementById('ms-login-btn');
+  const userSpan = document.getElementById('ms-user');
+
+  // Fetch the MS client ID from a meta endpoint (set via Cloud Run env).
+  // If not configured, SSO button stays hidden and API key auth is the only option.
+  let msalInstance = null;
+  let msClientId = null;
+
+  async function initMsal() {
+    try {
+      const res = await fetch('/auth/config');
+      if (!res.ok) return;
+      const cfg = await res.json();
+      msClientId = cfg.client_id;
+      if (!msClientId) return;
+    } catch { return; }
+
+    msalInstance = new msal.PublicClientApplication({
+      auth: {
+        clientId: msClientId,
+        authority: 'https://login.microsoftonline.com/common',
+        redirectUri: window.location.origin + '/ui',
+      },
+      cache: { cacheLocation: 'localStorage' },
+    });
+    await msalInstance.initialize();
+
+    // Check if already logged in (token in cache).
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      try {
+        const resp = await msalInstance.acquireTokenSilent({
+          scopes: ['openid', 'profile', 'email'],
+          account: accounts[0],
+        });
+        setLoggedIn(resp);
+        return;
+      } catch { /* fall through to show login button */ }
+    }
+
+    loginBtn.style.display = '';
+    loginBtn.textContent = t('signIn') || 'Sign in';
+  }
+
+  function setLoggedIn(resp) {
+    const email = resp.account?.username || '';
+    localStorage.setItem(LS_MS_TOKEN, resp.idToken);
+    localStorage.setItem(LS_MS_USER, email);
+    loginBtn.style.display = 'none';
+    userSpan.style.display = '';
+    userSpan.textContent = email;
+    // Override getApiKey to return Bearer token format.
+    window._msToken = resp.idToken;
+  }
+
+  loginBtn.addEventListener('click', async () => {
+    if (!msalInstance) return;
+    try {
+      const resp = await msalInstance.loginPopup({
+        scopes: ['openid', 'profile', 'email'],
+      });
+      setLoggedIn(resp);
+      setStatus('success', t('signedIn') || `Signed in as ${resp.account?.username}`);
+    } catch (err) {
+      setStatus('error', `Sign-in failed: ${err.message}`);
+    }
+  });
+
+  // Patch fetch calls to include the MS token when available.
+  const _origGetApiKey = window.getApiKey || (() => localStorage.getItem('melon_api_key') || '');
+  window.getApiKey = function() {
+    return _origGetApiKey();
+  };
+
+  // Patch the assess + feedback fetch calls to add Authorization header.
+  const _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+    const msToken = window._msToken || localStorage.getItem(LS_MS_TOKEN);
+    // Add Bearer token if we have one and URL is our API.
+    if (msToken && typeof url === 'string' && (url.includes('/assess') || url.includes('/feedback'))) {
+      if (typeof opts.headers === 'object' && !(opts.headers instanceof Headers)) {
+        if (!opts.headers['authorization'] && !opts.headers['Authorization']) {
+          opts.headers['Authorization'] = 'Bearer ' + msToken;
+        }
+      }
+    }
+    return _origFetch.call(this, url, opts);
+  };
+
+  // Restore session on page load.
+  const savedToken = localStorage.getItem(LS_MS_TOKEN);
+  const savedUser = localStorage.getItem(LS_MS_USER);
+  if (savedToken && savedUser) {
+    window._msToken = savedToken;
+    userSpan.style.display = '';
+    userSpan.textContent = savedUser;
+  }
+
+  initMsal();
+})();
 </script>
 </body>
 </html>
