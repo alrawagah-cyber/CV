@@ -29,10 +29,20 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Where the API configs expect weights to live on disk.
+# Includes .onnx + .onnx.data alongside .pt so the assessor can pick
+# ONNX Runtime when present (2-3x faster CPU inference). Missing files
+# are skipped silently — only present blobs are downloaded.
 DEFAULT_TARGETS: dict[str, str] = {
+    # PyTorch checkpoints (always present)
     "layer1/best.pt": "checkpoints/layer1/best.pt",
     "layer2/best.pt": "checkpoints/layer2/best.pt",
     "layer3/best.pt": "checkpoints/layer3/best.pt",
+    # ONNX exports (optional — fetcher tolerates missing blobs)
+    "layer1/best.onnx": "checkpoints/layer1/best.onnx",
+    "layer2/best.onnx": "checkpoints/layer2/best.onnx",
+    "layer2/best.onnx.data": "checkpoints/layer2/best.onnx.data",
+    "layer3/best.onnx": "checkpoints/layer3/best.onnx",
+    "layer3/best.onnx.data": "checkpoints/layer3/best.onnx.data",
 }
 
 
@@ -75,14 +85,18 @@ def fetch_weights_if_configured(
             continue
 
         key = f"{prefix_str}/{src}" if prefix_str else src
-        logger.info("Downloading gs://%s/%s -> %s", bucket_name, key, dst_path)
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         blob = gcs_bucket.blob(key)
         if not blob.exists(client=client):
+            # Optional blobs (.onnx, .onnx.data) may not exist yet — log but don't fail.
+            if src.endswith((".onnx", ".onnx.data")):
+                logger.info("Optional ONNX blob not in bucket, skipping: gs://%s/%s", bucket_name, key)
+                continue
             raise FileNotFoundError(
                 f"Weight blob not found at gs://{bucket_name}/{key}. "
                 f"Check CDP_WEIGHTS_BUCKET / CDP_WEIGHTS_PREFIX."
             )
+        logger.info("Downloading gs://%s/%s -> %s", bucket_name, key, dst_path)
         blob.download_to_filename(str(dst_path))
         refreshed.append(str(dst_path))
 
