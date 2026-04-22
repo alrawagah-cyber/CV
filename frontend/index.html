@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,12 +39,21 @@
   .site-header img { height: 44px; width: 44px; }
   .site-header .brand { font-weight: 700; font-size: 1.15rem; color: var(--melon-green); }
   .site-header .product { font-size: 0.85rem; color: var(--muted); margin-left: 0.5rem; }
-  .site-header .settings-toggle {
-    margin-left: auto; background: none; border: 1px solid var(--border);
+  .site-header .settings-toggle,
+  .site-header .lang-toggle {
+    background: none; border: 1px solid var(--border);
     border-radius: 8px; padding: 0.35rem 0.75rem; cursor: pointer;
     font-size: 0.8rem; color: var(--muted);
   }
-  .site-header .settings-toggle:hover { border-color: var(--melon-green); color: var(--melon-green); }
+  .site-header .settings-toggle { margin-left: auto; }
+  .site-header .lang-toggle { margin-left: 0.5rem; }
+  .site-header .settings-toggle:hover,
+  .site-header .lang-toggle:hover { border-color: var(--melon-green); color: var(--melon-green); }
+  /* RTL: swap the auto margin so the buttons float to the left edge. */
+  html[dir="rtl"] .site-header .settings-toggle { margin-left: 0; margin-right: auto; }
+  html[dir="rtl"] .site-header .lang-toggle { margin-left: 0; margin-right: 0.5rem; }
+  html[dir="rtl"] .site-header .product { margin-left: 0; margin-right: 0.5rem; }
+  html[dir="rtl"] body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
 
   .container { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 4rem; }
 
@@ -209,48 +218,216 @@
     <img src="/assets/melon-logo.png" alt="Melon"
          onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22&gt;&lt;circle cx=%2220%22 cy=%2220%22 r=%2218%22 fill=%22none%22 stroke=%22%2316a34a%22 stroke-width=%222.5%22/&gt;&lt;path d=%22M2.5 22 a17.5 17.5 0 0 0 35 0 z%22 fill=%22%23dc2626%22/&gt;&lt;text x=%2220%22 y=%2217%22 text-anchor=%22middle%22 font-family=%22cursive%22 font-size=%2210%22 font-weight=%22700%22 fill=%22%2316a34a%22&gt;melon&lt;/text&gt;&lt;/svg&gt;'" />
     <span class="brand">Melon</span>
-    <span class="product">· Car Damage Assessment</span>
-    <button class="settings-toggle" id="settings-toggle" title="API settings">Settings</button>
+    <span class="product" data-i18n="product">· Car Damage Assessment</span>
+    <button class="settings-toggle" id="settings-toggle" title="API settings" data-i18n="settings">Settings</button>
+    <button class="lang-toggle" id="lang-toggle" title="Toggle language">العربية</button>
   </div>
 </header>
 
 <main class="container">
-  <h1>Assess a claim photo</h1>
-  <p class="subtitle">Upload damaged-vehicle photos. Review the AI-generated
+  <h1 data-i18n="title">Assess a claim photo</h1>
+  <p class="subtitle" data-i18n="subtitle">Upload damaged-vehicle photos. Review the AI-generated
   assessment. Correct anything wrong — corrections feed retraining.</p>
 
   <div class="settings" id="settings">
     <div>
-      <label for="api-url">API base URL</label>
+      <label for="api-url" data-i18n="apiUrl">API base URL</label>
       <input type="text" id="api-url" placeholder="https://car-damage-api-...run.app">
     </div>
     <div>
-      <label for="api-key">API key</label>
-      <input type="password" id="api-key" placeholder="Paste your X-API-Key">
+      <label for="api-key" data-i18n="apiKey">API key</label>
+      <input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Paste your X-API-Key">
     </div>
-    <button class="btn btn-ghost btn-sm" id="settings-save">Save</button>
+    <button class="btn btn-ghost btn-sm" id="settings-save" data-i18n="save">Save</button>
   </div>
 
   <div class="upload-zone" id="drop-zone">
     <div class="icon">🚗</div>
-    <strong>Drop claim photos here or click to browse</strong>
-    <p>JPG or PNG, up to 16 MB</p>
+    <strong data-i18n="dropHere">Drop claim photos here or click to browse</strong>
+    <p data-i18n="dropFormats">JPG or PNG, up to 16 MB</p>
     <input type="file" id="file-input" accept="image/jpeg,image/png" multiple>
   </div>
 
   <div class="preview-row" id="preview-row"></div>
 
-  <button class="btn" id="assess-btn" disabled>Assess damage</button>
+  <button class="btn" id="assess-btn" data-i18n="assess" disabled>Assess damage</button>
 
   <div class="status" id="status"></div>
   <div id="results"></div>
 </main>
 
 <footer>
-  © Melon Insurtech · Provided for Chubb · <a href="/docs" target="_blank">API docs</a>
+  <span data-i18n="footer">© Melon Insurtech · Provided for Chubb</span> · <a href="/docs" target="_blank" data-i18n="apiDocs">API docs</a>
 </footer>
 
 <script>
+/* ------------------------------------------------------------------ */
+/*  i18n (English + Arabic with RTL)                                   */
+/* ------------------------------------------------------------------ */
+const I18N = {
+  en: {
+    product: "· Car Damage Assessment",
+    settings: "Settings",
+    title: "Assess a claim photo",
+    subtitle: "Upload damaged-vehicle photos. Review the AI-generated assessment. Correct anything wrong — corrections feed retraining.",
+    apiUrl: "API base URL",
+    apiKey: "API key",
+    apiKeyPlaceholder: "Paste your X-API-Key",
+    save: "Save",
+    dropHere: "Drop claim photos here or click to browse",
+    dropFormats: "JPG or PNG, up to 16 MB",
+    assess: "Assess damage",
+    processing: "Processing...",
+    apiDocs: "API docs",
+    footer: "© Melon Insurtech · Provided for Chubb",
+    // Report stats
+    detected: "Detected",
+    damaged: "Damaged",
+    replace: "Replace",
+    time: "Time",
+    // Actions
+    submitFeedback: "Submit feedback",
+    correct: "✓ Correct",
+    actuallyClean: "Actually clean",
+    rawJson: "▶ Raw JSON",
+    // Statuses
+    settingsSaved: "Settings saved.",
+    noApiKey: "No API key set. Click Settings and paste the key you received from Melon.",
+    sending: "Sending {n} photo(s)...",
+    done: "Done.",
+    nothingMarked: "Nothing marked — click Actually clean or Correct on at least one part first.",
+    feedbackOk: "Feedback saved ({id}…). It will be used in the next retraining cycle.",
+    feedbackFailed: "Feedback submission failed: {err}",
+    detection: "Detection",
+    hint: "Click any part to highlight; use Clean/Correct buttons to flag model errors.",
+    // Overall assessments
+    overall_clean: "clean",
+    overall_minor_damage: "minor damage",
+    overall_major_damage: "major damage",
+    overall_total_loss: "total loss",
+    // Severity
+    grade_minor: "minor",
+    grade_moderate: "moderate",
+    grade_severe: "severe",
+    grade_total_loss: "total loss",
+    // Actions
+    rec_repair: "repair",
+    rec_replace: "replace",
+    rec_clean: "clean",
+    baseline: "baseline",
+    // Part names
+    part_bumper: "bumper", part_hood: "hood", part_fender: "fender",
+    part_door: "door", part_windshield: "windshield", part_headlight: "headlight",
+    part_taillight: "taillight", part_mirror: "mirror", part_trunk: "trunk",
+    part_roof: "roof", part_quarter_panel: "quarter panel",
+    part_grille: "grille", part_wheel: "wheel", part_car: "car",
+    // Damage types
+    dmg_dent: "dent", dmg_scratch: "scratch", dmg_crack: "crack",
+    dmg_shatter: "shatter", dmg_tear: "tear", dmg_deformation: "deformation",
+    dmg_paint_loss: "paint loss", dmg_puncture: "puncture",
+    dmg_misalignment: "misalignment", dmg_no_damage: "no damage",
+  },
+  ar: {
+    product: "· تقييم أضرار السيارات",
+    settings: "الإعدادات",
+    title: "قيّم صورة مطالبة",
+    subtitle: "ارفع صور المركبات المتضررة. راجع التقييم الذي يولّده الذكاء الاصطناعي. صحّح أي خطأ — التصحيحات تُستخدم في إعادة التدريب.",
+    apiUrl: "رابط الـ API",
+    apiKey: "مفتاح الـ API",
+    apiKeyPlaceholder: "الصق مفتاح X-API-Key الخاص بك",
+    save: "حفظ",
+    dropHere: "أفلت صور المطالبة هنا أو اضغط للاختيار",
+    dropFormats: "JPG أو PNG، بحد أقصى 16 ميجابايت",
+    assess: "تقييم الأضرار",
+    processing: "قيد المعالجة...",
+    apiDocs: "وثائق الـ API",
+    footer: "© ميلون إنشور‌تك · مقدَّم لشوب",
+    detected: "المكتشفة",
+    damaged: "المتضررة",
+    replace: "استبدال",
+    time: "الزمن",
+    submitFeedback: "إرسال الملاحظات",
+    correct: "✓ صحيح",
+    actuallyClean: "سليم فعلاً",
+    rawJson: "▶ JSON الخام",
+    settingsSaved: "تم حفظ الإعدادات.",
+    noApiKey: "لم يتم ضبط مفتاح API. اضغط على الإعدادات والصق المفتاح الذي استلمته من ميلون.",
+    sending: "جاري إرسال {n} صورة...",
+    done: "تم.",
+    nothingMarked: "لم يتم تمييز أي شيء — اضغط \"سليم فعلاً\" أو \"صحيح\" على قطعة واحدة على الأقل أولاً.",
+    feedbackOk: "تم حفظ الملاحظات ({id}…). ستُستخدم في دورة إعادة التدريب القادمة.",
+    feedbackFailed: "فشل إرسال الملاحظات: {err}",
+    detection: "الكشف",
+    hint: "اضغط على أي قطعة لتمييزها؛ استخدم أزرار \"سليم\"/\"صحيح\" للإبلاغ عن أخطاء النموذج.",
+    overall_clean: "سليم",
+    overall_minor_damage: "ضرر بسيط",
+    overall_major_damage: "ضرر كبير",
+    overall_total_loss: "خسارة كلية",
+    grade_minor: "بسيط",
+    grade_moderate: "متوسط",
+    grade_severe: "شديد",
+    grade_total_loss: "خسارة كلية",
+    rec_repair: "إصلاح",
+    rec_replace: "استبدال",
+    rec_clean: "سليم",
+    baseline: "أساسي",
+    part_bumper: "الصدام", part_hood: "غطاء المحرك", part_fender: "الرفرف",
+    part_door: "الباب", part_windshield: "الزجاج الأمامي", part_headlight: "المصباح الأمامي",
+    part_taillight: "المصباح الخلفي", part_mirror: "المرآة", part_trunk: "صندوق الأمتعة",
+    part_roof: "السقف", part_quarter_panel: "الجناح الخلفي",
+    part_grille: "الشبك الأمامي", part_wheel: "العجلة", part_car: "السيارة",
+    dmg_dent: "انبعاج", dmg_scratch: "خدش", dmg_crack: "شرخ",
+    dmg_shatter: "تحطّم", dmg_tear: "تمزق", dmg_deformation: "تشوه",
+    dmg_paint_loss: "فقد طلاء", dmg_puncture: "ثقب",
+    dmg_misalignment: "اختلال محاذاة", dmg_no_damage: "لا ضرر",
+  },
+};
+const LS_LANG = 'melon_lang';
+let CUR_LANG = localStorage.getItem(LS_LANG) || (navigator.language && navigator.language.startsWith('ar') ? 'ar' : 'en');
+
+function t(key, params) {
+  const bundle = I18N[CUR_LANG] || I18N.en;
+  let s = bundle[key] ?? I18N.en[key] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) s = s.replace(`{${k}}`, v);
+  }
+  return s;
+}
+
+function applyLanguage(lang) {
+  CUR_LANG = lang;
+  localStorage.setItem(LS_LANG, lang);
+  document.documentElement.setAttribute('lang', lang);
+  document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+  // Text content
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[lang] && I18N[lang][key] !== undefined) el.textContent = I18N[lang][key];
+    else if (I18N.en[key] !== undefined) el.textContent = I18N.en[key];
+  });
+  // Placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (I18N[lang] && I18N[lang][key] !== undefined) el.placeholder = I18N[lang][key];
+  });
+  // Toggle button shows the OTHER language
+  const toggle = document.getElementById('lang-toggle');
+  if (toggle) toggle.textContent = lang === 'ar' ? 'English' : 'العربية';
+}
+
+document.getElementById('lang-toggle').addEventListener('click', () => {
+  applyLanguage(CUR_LANG === 'ar' ? 'en' : 'ar');
+  // Re-render any already-rendered reports to translate in place.
+  document.querySelectorAll('[data-report-json]').forEach(el => {
+    const rpt = JSON.parse(el.getAttribute('data-report-json'));
+    const name = el.getAttribute('data-report-name');
+    const fileUrl = el.getAttribute('data-report-url');
+    const fresh = renderReport(name, fileUrl, rpt);
+    el.replaceWith(fresh);
+  });
+});
+applyLanguage(CUR_LANG);
+
 /* ------------------------------------------------------------------ */
 /*  Configuration (persisted in localStorage)                          */
 /* ------------------------------------------------------------------ */
@@ -277,7 +454,7 @@ document.getElementById('settings-save').addEventListener('click', () => {
   localStorage.setItem(LS_URL, document.getElementById('api-url').value.replace(/\/+$/, ''));
   localStorage.setItem(LS_KEY, document.getElementById('api-key').value);
   document.getElementById('settings').classList.remove('open');
-  setStatus('success', 'Settings saved.');
+  setStatus('success', t('settingsSaved'));
 });
 
 function setStatus(kind, msg) {
@@ -339,13 +516,13 @@ assessBtn.addEventListener('click', async () => {
   const apiUrl = getApiUrl();
   const apiKey = getApiKey();
   if (!apiKey) {
-    setStatus('error', 'No API key set. Click Settings and paste the key you received from Melon.');
+    setStatus('error', t('noApiKey'));
     return;
   }
   assessBtn.disabled = true;
   const original = assessBtn.textContent;
-  assessBtn.textContent = 'Processing...';
-  setStatus('info', `Sending ${selectedFiles.length} photo(s)...`);
+  assessBtn.textContent = t('processing');
+  setStatus('info', t('sending', { n: selectedFiles.length }));
   resultsEl.innerHTML = '';
 
   for (const file of selectedFiles) {
@@ -369,9 +546,9 @@ assessBtn.addEventListener('click', async () => {
     }
   }
 
-  setStatus('success', 'Done.');
+  setStatus('success', t('done'));
   assessBtn.disabled = false;
-  assessBtn.textContent = original;
+  assessBtn.textContent = t('assess');
 });
 
 function renderError(name, msg) {
@@ -393,29 +570,35 @@ const PART_COLORS = [
 function renderReport(filename, fileUrl, rpt) {
   const card = document.createElement('div');
   card.className = 'report';
+  // Store the raw data so the language toggle can re-render in place.
+  card.setAttribute('data-report-json', JSON.stringify(rpt));
+  card.setAttribute('data-report-name', filename);
+  card.setAttribute('data-report-url', fileUrl);
 
   const baselineFlag = rpt.pretrained_baseline
-    ? ' <span class="badge badge-baseline">baseline</span>' : '';
+    ? ` <span class="badge badge-baseline">${t('baseline')}</span>` : '';
+
+  const overallLabel = t(`overall_${rpt.overall_assessment}`) || rpt.overall_assessment.replace('_', ' ');
 
   card.innerHTML = `
-    <h2>${filename} <span class="badge badge-${rpt.overall_assessment}">${rpt.overall_assessment.replace('_', ' ')}</span>${baselineFlag}</h2>
+    <h2>${filename} <span class="badge badge-${rpt.overall_assessment}">${overallLabel}</span>${baselineFlag}</h2>
     <div class="stats">
-      <div class="stat"><div class="val">${rpt.parts_detected}</div><div class="lbl">Detected</div></div>
-      <div class="stat"><div class="val">${rpt.parts_damaged}</div><div class="lbl">Damaged</div></div>
-      <div class="stat"><div class="val">${rpt.parts_requiring_replacement}</div><div class="lbl">Replace</div></div>
-      <div class="stat"><div class="val">${Math.round((rpt.inference_ms || 0)/1000)}s</div><div class="lbl">Time</div></div>
+      <div class="stat"><div class="val">${rpt.parts_detected}</div><div class="lbl">${t('detected')}</div></div>
+      <div class="stat"><div class="val">${rpt.parts_damaged}</div><div class="lbl">${t('damaged')}</div></div>
+      <div class="stat"><div class="val">${rpt.parts_requiring_replacement}</div><div class="lbl">${t('replace')}</div></div>
+      <div class="stat"><div class="val">${Math.round((rpt.inference_ms || 0)/1000)}s</div><div class="lbl">${t('time')}</div></div>
     </div>
     <div class="report-body">
       <div class="canvas-wrap"><canvas></canvas></div>
       <div>
         <div class="parts-list"></div>
         <div class="feedback-bar">
-          <div class="hint">Click any part to highlight; use Clean/Correct buttons to flag model errors.</div>
-          <button class="btn btn-ghost btn-sm submit-fb">Submit feedback</button>
+          <div class="hint">${t('hint')}</div>
+          <button class="btn btn-ghost btn-sm submit-fb">${t('submitFeedback')}</button>
         </div>
       </div>
     </div>
-    <span class="json-toggle">▶ Raw JSON</span>
+    <span class="json-toggle">${t('rawJson')}</span>
     <pre class="json-block">${JSON.stringify(rpt, null, 2)}</pre>
   `;
 
@@ -449,7 +632,7 @@ function renderReport(filename, fileUrl, rpt) {
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
       ctx.font = 'bold 28px system-ui, sans-serif';
       ctx.fillStyle = color;
-      ctx.fillText(p.part, x1 + 6, y1 + 32);
+      ctx.fillText(t(`part_${p.part}`) || p.part, x1 + 6, y1 + 32);
     });
   }
 
@@ -460,21 +643,24 @@ function renderReport(filename, fileUrl, rpt) {
     const isClean = p.damaged === false;
     const card_ = document.createElement('div');
     card_.className = 'part-card';
+    const partLabel = t(`part_${p.part}`) || p.part;
+    const gradeLabel = p.severity ? (t(`grade_${p.severity.grade}`) || p.severity.grade.replace('_',' ')) : '';
+    const recLabel = p.recommendation ? (t(`rec_${p.recommendation}`) || p.recommendation) : '';
     card_.innerHTML = `
       <div class="part-card-row">
-        <div><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:0.5rem"></span><strong>${p.part}</strong></div>
+        <div><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-inline-end:0.5rem"></span><strong>${partLabel}</strong></div>
         <div>${isClean
-          ? '<span class="badge badge-clean-part">clean</span>'
-          : (p.severity ? `<span class="badge badge-${p.severity.grade}">${p.severity.grade.replace('_',' ')}</span>` : '') +
-            (p.recommendation ? ` <span class="badge badge-${p.recommendation}">${p.recommendation}</span>` : '')
+          ? `<span class="badge badge-clean-part">${t('rec_clean')}</span>`
+          : (p.severity ? `<span class="badge badge-${p.severity.grade}">${gradeLabel}</span>` : '') +
+            (p.recommendation ? ` <span class="badge badge-${p.recommendation}">${recLabel}</span>` : '')
         }</div>
       </div>
-      <div class="meta">Detection: ${Math.round(p.detection_confidence * 100)}%</div>
+      <div class="meta">${t('detection')}: ${Math.round(p.detection_confidence * 100)}%</div>
       ${!isClean && dt.length ? `<div class="damage-list">${dt.map(d =>
-          `<span class="damage-chip">${d.type} ${Math.round(d.probability*100)}%</span>`).join('')}</div>` : ''}
+          `<span class="damage-chip">${t(`dmg_${d.type}`) || d.type} ${Math.round(d.probability*100)}%</span>`).join('')}</div>` : ''}
       <div class="feedback-row">
-        <button class="fb-btn fb-correct">✓ Correct</button>
-        <button class="fb-btn fb-clean">Actually clean</button>
+        <button class="fb-btn fb-correct">${t('correct')}</button>
+        <button class="fb-btn fb-clean">${t('actuallyClean')}</button>
       </div>
     `;
     card_.onclick = (e) => {
@@ -507,7 +693,7 @@ function renderReport(filename, fileUrl, rpt) {
   /* Submit feedback handler */
   card.querySelector('.submit-fb').onclick = async () => {
     if (feedbackState.size === 0) {
-      setStatus('info', 'Nothing marked — click "Actually clean" or "Correct" on at least one part first.');
+      setStatus('info', t('nothingMarked'));
       return;
     }
     const corrected_parts = [];
@@ -554,9 +740,9 @@ function renderReport(filename, fileUrl, rpt) {
       });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       const data = await res.json();
-      setStatus('success', `Feedback saved (${data.feedback_id.slice(0,8)}…). It will be used in the next retraining cycle.`);
+      setStatus('success', t('feedbackOk', { id: data.feedback_id.slice(0,8) }));
     } catch (err) {
-      setStatus('error', `Feedback submission failed: ${err.message}`);
+      setStatus('error', t('feedbackFailed', { err: err.message }));
     }
   };
 
