@@ -52,6 +52,17 @@ def _record_drift(request: Request, report: dict) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Auth config (public — tells the frontend whether MS SSO is enabled)
+# --------------------------------------------------------------------------- #
+@router.get("/auth/config", tags=["meta"])
+async def auth_config() -> dict:
+    import os
+
+    client_id = os.environ.get("CDP_MS_CLIENT_ID", "")
+    return {"client_id": client_id, "enabled": bool(client_id)}
+
+
+# --------------------------------------------------------------------------- #
 # Health
 # --------------------------------------------------------------------------- #
 @router.get("/health", response_model=HealthResponse, tags=["meta"])
