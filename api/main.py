@@ -52,6 +52,12 @@ async def lifespan(app: FastAPI):
         logger.warning("CDP_LOAD_MODELS=0 set — running API without models (test mode).")
         app.state.assessor = None
 
+    # Drift monitor — lightweight, no external deps.
+    from api.drift_monitor import DriftMonitor
+
+    app.state.drift_monitor = DriftMonitor()
+    logger.info("Drift monitor initialized (window=%d).", app.state.drift_monitor._window)
+
     # Feedback store is always loaded (local backend by default; no external deps).
     try:
         from api.feedback_store import build_store_from_config, load_feedback_config
@@ -70,6 +76,7 @@ async def lifespan(app: FastAPI):
 
     app.state.assessor = None
     app.state.feedback_store = None
+    app.state.drift_monitor = None
 
 
 def create_app() -> FastAPI:
@@ -108,10 +115,15 @@ def create_app() -> FastAPI:
 
     frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
     frontend_html = frontend_dir / "index.html"
+    admin_html = frontend_dir / "admin.html"
 
     @app.get("/ui", include_in_schema=False)
     async def ui():
         return FileResponse(frontend_html, media_type="text/html")
+
+    @app.get("/admin", include_in_schema=False)
+    async def admin_ui():
+        return FileResponse(admin_html, media_type="text/html")
 
     if frontend_dir.is_dir():
         app.mount("/assets", StaticFiles(directory=str(frontend_dir)), name="ui-assets")

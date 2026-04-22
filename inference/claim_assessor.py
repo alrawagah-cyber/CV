@@ -38,6 +38,7 @@ from inference.preprocessing import (
     expand_bbox,
     load_image,
 )
+from inference.total_loss_screen import TotalLossScreener
 from models.layer1_detector import DEFAULT_PART_CLASSES, Detection, PartDetector
 from models.layer2_damage import DEFAULT_DAMAGE_CLASSES, DamageTypeClassifier
 from models.layer3_severity import DEFAULT_SEVERITY_GRADES, SeverityAssessor
@@ -66,12 +67,19 @@ class AssessorConfig:
     l3_weights: str | None = None
     l3_grades: list[str] = field(default_factory=lambda: list(DEFAULT_SEVERITY_GRADES))
 
+    # Total-loss pre-screen
+    total_loss_screen_weights: str | None = None
+    total_loss_screen_threshold: float = 0.85
+
     # Runtime
     device: str = "cuda"
     batch_size: int = 8
     crop_margin: float = 0.1
     max_parts: int = 32
     use_rule_override: bool = False
+
+    # Active learning
+    active_learning_thresholds: dict[str, Any] | None = None
 
     # Versioning for the report
     versions: dict[str, str] = field(
@@ -89,12 +97,23 @@ class AssessorConfig:
         l1 = cfg.get("layer1", {})
         l2 = cfg.get("layer2", {})
         l3 = cfg.get("layer3", {})
+        tls = cfg.get("total_loss_screen", {})
         runtime = cfg.get("runtime", {})
         versions = {
             "layer1": l1.get("version", "yolov8x_v1"),
             "layer2": l2.get("version", "convnextv2_large_v1"),
             "layer3": l3.get("version", "swinv2_large_v1"),
         }
+        tls_enabled = tls.get("enabled", False)
+        tls_weights = tls.get("weights") if tls_enabled else None
+        al = cfg.get("active_learning", {})
+        al_thresholds = None
+        if al.get("enabled", False):
+            al_thresholds = {
+                "l2_entropy_threshold": al.get("l2_entropy_threshold", 1.5),
+                "l3_entropy_threshold": al.get("l3_entropy_threshold", 1.0),
+                "min_detection_confidence": al.get("min_detection_confidence", 0.4),
+            }
         return cls(
             l1_weights=l1.get("weights", "yolov8x.pt"),
             l1_conf=l1.get("conf_threshold", 0.25),
@@ -109,11 +128,14 @@ class AssessorConfig:
             l3_backbone=l3.get("backbone", "swinv2_large_window12to24_192to384.ms_in22k_ft_in1k"),
             l3_weights=l3.get("weights"),
             l3_grades=l3.get("grades", list(DEFAULT_SEVERITY_GRADES)),
+            total_loss_screen_weights=tls_weights,
+            total_loss_screen_threshold=tls.get("threshold", 0.85),
             device=runtime.get("device", "cuda"),
             batch_size=runtime.get("batch_size", 8),
             crop_margin=runtime.get("crop_margin", 0.1),
             max_parts=runtime.get("max_parts", 32),
             use_rule_override=runtime.get("use_rule_override", False),
+            active_learning_thresholds=al_thresholds,
             versions=versions,
         )
 
@@ -129,6 +151,11 @@ class ClaimAssessor:
             logger.warning("CUDA requested but unavailable; falling back to CPU.")
             requested = "cpu"
         self.device = torch.device(requested)
+
+        self.screener = TotalLossScreener(
+            weights=cfg.total_loss_screen_weights,
+            device=requested,
+        )
 
         logger.info("Loading Layer 1 (detector)...")
         self.detector = PartDetector(
@@ -225,6 +252,26 @@ class ClaimAssessor:
             h, w = img.shape[:2]
             warnings: list[str] = []
 
+            # --- Total-loss pre-screen
+            is_total_loss, tl_confidence = self.screener.screen(img)
+            if is_total_loss and tl_confidence >= self.cfg.total_loss_screen_threshold:
+                elapsed_ms = int((time.time() - t0) * 1000)
+                report = build_report(
+                    image_id=img_id,
+                    image_width=w,
+                    image_height=h,
+                    parts=[],
+                    pretrained_baseline=self.pretrained_baseline,
+                    model_versions=self.cfg.versions,
+                    warnings=warnings,
+                )
+                report["overall_assessment"] = "total_loss"
+                report["screened_total_loss"] = True
+                report["total_loss_confidence"] = round(tl_confidence, 4)
+                report["inference_ms"] = elapsed_ms
+                reports.append(report)
+                continue
+
             # --- Layer 1
             detections_batches = self.detector.predict([img])
             detections: list[Detection] = detections_batches[0]
@@ -303,6 +350,7 @@ class ClaimAssessor:
                         },
                         pretrained_baseline=self.pretrained_baseline,
                         use_rule_override=self.cfg.use_rule_override,
+                        active_learning_thresholds=self.cfg.active_learning_thresholds,
                     )
                 )
 

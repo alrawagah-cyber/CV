@@ -34,6 +34,8 @@ class PartAssessment(BaseModel):
     repair_probability: float | None = None
     replace_probability: float | None = None
     pretrained_baseline: bool
+    uncertainty_score: float | None = None
+    flagged_for_review: bool = False
 
 
 class ClaimReport(BaseModel):
@@ -43,6 +45,7 @@ class ClaimReport(BaseModel):
     parts_detected: int
     parts_damaged: int
     parts_requiring_replacement: int
+    review_flags_count: int = 0
     overall_assessment: str
     parts: list[PartAssessment]
     pretrained_baseline: bool

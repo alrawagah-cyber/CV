@@ -67,8 +67,8 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
 
 
 API_KEY_HEADER = "x-api-key"
-_OPEN_PATHS = {"/", "/health", "/docs", "/openapi.json", "/redoc", "/ui"}
-_OPEN_PREFIXES = ("/docs", "/assets/", "/static/", "/metrics")
+_OPEN_PATHS = {"/", "/health", "/docs", "/openapi.json", "/redoc", "/ui", "/admin"}
+_OPEN_PREFIXES = ("/docs", "/assets/", "/static/", "/metrics", "/admin/")
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):

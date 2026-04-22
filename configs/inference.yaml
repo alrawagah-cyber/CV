@@ -52,9 +52,20 @@ layer3:
     - severe
     - total_loss
 
+total_loss_screen:
+  enabled: false
+  weights: null
+  threshold: 0.85
+
 runtime:
   device: cuda             # falls back to CPU if CUDA unavailable
   batch_size: 8
   crop_margin: 0.1         # expand bbox by 10 percent before cropping
   max_parts: 32            # hard cap on number of parts per image
   use_rule_override: false # if true, override L3 repair/replace with static rules
+
+active_learning:
+  enabled: true
+  l2_entropy_threshold: 1.5
+  l3_entropy_threshold: 1.0
+  min_detection_confidence: 0.4

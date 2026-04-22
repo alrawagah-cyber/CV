@@ -29,6 +29,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _record_drift(request: Request, report: dict) -> None:
+    """Push a report into the drift monitor and update Prometheus counters."""
+    monitor = getattr(request.app.state, "drift_monitor", None)
+    if monitor is not None:
+        monitor.record(report)
+
+    # Prometheus per-label counters for alerting / Grafana.
+    overall = report.get("overall_assessment")
+    if overall:
+        metrics.DRIFT_OVERALL.labels(assessment=overall).inc()
+    for part in report.get("parts", []):
+        metrics.DRIFT_PARTS.labels(part=part.get("part", "unknown")).inc()
+        pdt = part.get("primary_damage_type")
+        if pdt:
+            metrics.DRIFT_DAMAGE_TYPE.labels(damage_type=pdt).inc()
+        sev = (part.get("severity") or {}).get("grade")
+        if sev:
+            metrics.DRIFT_SEVERITY.labels(grade=sev).inc()
+        if part.get("flagged_for_review", False):
+            metrics.REVIEW_FLAGS.inc()
+
+
 # --------------------------------------------------------------------------- #
 # Health
 # --------------------------------------------------------------------------- #
@@ -86,6 +108,10 @@ async def assess(request: Request, file: UploadFile = File(...)) -> ClaimReport:
     metrics.REQUESTS_TOTAL.labels(endpoint="/assess", status="200").inc()
     metrics.INFERENCE_LATENCY.labels(endpoint="/assess").observe(time.time() - t0)
     metrics.PARTS_DETECTED.observe(report.get("parts_detected", 0))
+
+    # --- Drift monitoring + Prometheus counters ---
+    _record_drift(request, report)
+
     return ClaimReport.model_validate(report)
 
 
@@ -218,6 +244,54 @@ async def submit_feedback(
     return FeedbackResponse(
         feedback_id=feedback_id, claim_id=payload.claim_id, stored_at=uri, status="stored"
     )
+
+
+# --------------------------------------------------------------------------- #
+# Admin: drift monitoring
+# --------------------------------------------------------------------------- #
+@router.get("/admin/drift", tags=["admin"])
+async def drift_stats(request: Request) -> dict:
+    monitor = getattr(request.app.state, "drift_monitor", None)
+    if monitor is None:
+        raise HTTPException(status_code=503, detail="Drift monitor not initialized.")
+    return monitor.get_stats()
+
+
+# --------------------------------------------------------------------------- #
+# Admin: feedback browser
+# --------------------------------------------------------------------------- #
+@router.get("/admin/feedback", tags=["admin"])
+async def list_feedback(
+    request: Request,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict]:
+    store = getattr(request.app.state, "feedback_store", None)
+    if store is None:
+        raise HTTPException(status_code=503, detail="Feedback store not initialized.")
+    try:
+        bundles = store.list_bundles()
+    except Exception as exc:
+        logger.exception("Failed to list feedback bundles")
+        raise HTTPException(status_code=500, detail=f"Failed to list feedback: {exc}") from exc
+    # Sort most-recent first by captured_at.
+    bundles.sort(key=lambda b: b.get("captured_at", ""), reverse=True)
+    return bundles[offset : offset + limit]
+
+
+@router.get("/admin/feedback/{feedback_id}", tags=["admin"])
+async def get_feedback(request: Request, feedback_id: str) -> dict:
+    store = getattr(request.app.state, "feedback_store", None)
+    if store is None:
+        raise HTTPException(status_code=503, detail="Feedback store not initialized.")
+    try:
+        bundle = store.get_bundle(feedback_id)
+    except Exception as exc:
+        logger.exception("Failed to read feedback bundle")
+        raise HTTPException(status_code=500, detail=f"Failed to read feedback: {exc}") from exc
+    if bundle is None:
+        raise HTTPException(status_code=404, detail=f"Feedback bundle {feedback_id!r} not found.")
+    return bundle
 
 
 @router.get("/jobs/{job_id}", response_model=JobStatusResponse, tags=["assessment"])

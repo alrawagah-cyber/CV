@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Melon Admin — Feedback Browser</title>
+<style>
+  :root {
+    --melon-green: #16a34a;
+    --melon-green-dark: #15803d;
+    --melon-red: #dc2626;
+    --bg: #fafaf9;
+    --card: #ffffff;
+    --border: #e7e5e4;
+    --text: #18181b;
+    --muted: #71717a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  a { color: var(--melon-green-dark); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header {
+    background: #fff; border-bottom: 1px solid var(--border); padding: 1rem 2rem;
+  }
+  .site-header .inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .site-header img { height: 44px; width: 44px; }
+  .site-header .brand { font-weight: 700; font-size: 1.15rem; color: var(--melon-green); }
+  .site-header .product { font-size: 0.85rem; color: var(--muted); margin-left: 0.5rem; }
+  .site-header .nav-link {
+    margin-left: auto; font-size: 0.85rem; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem 0.75rem;
+    text-decoration: none;
+  }
+  .site-header .nav-link:hover { border-color: var(--melon-green); color: var(--melon-green); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+  .status {
+    padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+    font-size: 0.85rem; display: none;
+  }
+  .status.error { display: block; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .status.info { display: block; background: #f0fdf4; color: var(--melon-green-dark); border: 1px solid #bbf7d0; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  thead { background: #f4f4f5; }
+  th { text-align: left; padding: 0.6rem 0.75rem; font-size: 0.75rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.03em; font-weight: 600; }
+  td { padding: 0.6rem 0.75rem; font-size: 0.85rem; border-top: 1px solid var(--border); }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: #f0fdf4; }
+  .notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+  .badge-yes { background: #dcfce7; color: var(--melon-green-dark); }
+  .badge-no { background: #f4f4f5; color: var(--muted); }
+
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.95rem; }
+
+  /* Detail panel (expanded row) */
+  .detail-row td { background: #fafaf9; padding: 1rem; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 800px) { .detail-grid { grid-template-columns: 1fr; } }
+  .detail-section h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--melon-green-dark); }
+  .detail-section pre {
+    background: #18181b; color: #fafaf9; border-radius: 8px; padding: 0.75rem;
+    font-size: 0.72rem; font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    overflow: auto; max-height: 400px; white-space: pre-wrap; word-break: break-word;
+  }
+  .detail-meta { margin-bottom: 1rem; }
+  .detail-meta dt { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
+  .detail-meta dd { font-size: 0.85rem; margin-bottom: 0.5rem; }
+
+  .load-more {
+    display: block; margin: 1.5rem auto 0; padding: 0.5rem 1.5rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; font-size: 0.85rem; color: var(--muted);
+  }
+  .load-more:hover { border-color: var(--melon-green); color: var(--melon-green); }
+
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 2rem 1rem; border-top: 1px solid var(--border); background: #fff; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <img src="/assets/melon-logo.png" alt="Melon"
+         onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22&gt;&lt;circle cx=%2220%22 cy=%2220%22 r=%2218%22 fill=%22none%22 stroke=%22%2316a34a%22 stroke-width=%222.5%22/&gt;&lt;path d=%22M2.5 22 a17.5 17.5 0 0 0 35 0 z%22 fill=%22%23dc2626%22/&gt;&lt;text x=%2220%22 y=%2217%22 text-anchor=%22middle%22 font-family=%22cursive%22 font-size=%2210%22 font-weight=%22700%22 fill=%22%2316a34a%22&gt;melon&lt;/text&gt;&lt;/svg&gt;'" />
+    <span class="brand">Melon</span>
+    <span class="product">· Admin</span>
+    <a href="/ui" class="nav-link">Back to Assessment UI</a>
+  </div>
+</header>
+
+<main class="container">
+  <h1>Feedback Browser</h1>
+  <p class="subtitle">Browse adjuster corrections submitted through the feedback pipeline.</p>
+
+  <div class="status" id="status"></div>
+
+  <table id="feedback-table">
+    <thead>
+      <tr>
+        <th>Claim ID</th>
+        <th>Adjuster</th>
+        <th>Date</th>
+        <th>Parts Delta</th>
+        <th>Image</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody id="feedback-body"></tbody>
+  </table>
+
+  <div class="empty" id="empty-msg" style="display:none;">No feedback submissions found.</div>
+
+  <button class="load-more" id="load-more" style="display:none;">Load more</button>
+</main>
+
+<footer>
+  &copy; Melon Insurtech &middot; Admin Panel &middot; <a href="/docs" target="_blank">API docs</a>
+</footer>
+
+<script>
+const PAGE_SIZE = 50;
+let currentOffset = 0;
+let expandedId = null;
+
+function setStatus(kind, msg) {
+  const s = document.getElementById('status');
+  s.className = 'status ' + kind;
+  s.textContent = msg;
+}
+
+function truncate(str, len) {
+  if (!str) return '';
+  return str.length > len ? str.slice(0, len) + '...' : str;
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) +
+           ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+
+async function fetchBundles(offset, limit) {
+  const res = await fetch(`/admin/feedback?limit=${limit}&offset=${offset}`);
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || `${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+async function fetchBundle(feedbackId) {
+  const res = await fetch(`/admin/feedback/${encodeURIComponent(feedbackId)}`);
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || `${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+function renderRow(b) {
+  const tr = document.createElement('tr');
+  tr.className = 'clickable';
+  tr.dataset.feedbackId = b.feedback_id;
+  tr.innerHTML = `
+    <td>${escHtml(b.claim_id)}</td>
+    <td>${escHtml(b.adjuster_id)}</td>
+    <td>${formatDate(b.captured_at)}</td>
+    <td>${b.parts_delta}</td>
+    <td><span class="badge ${b.has_image ? 'badge-yes' : 'badge-no'}">${b.has_image ? 'yes' : 'no'}</span></td>
+    <td class="notes-cell" title="${escAttr(b.notes || '')}">${escHtml(truncate(b.notes, 60))}</td>
+  `;
+  tr.addEventListener('click', () => toggleDetail(b.feedback_id, tr));
+  return tr;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function escAttr(s) {
+  return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+async function toggleDetail(feedbackId, rowEl) {
+  const tbody = document.getElementById('feedback-body');
+  // If already expanded, collapse.
+  const existing = tbody.querySelector(`tr.detail-row[data-detail-for="${feedbackId}"]`);
+  if (existing) {
+    existing.remove();
+    expandedId = null;
+    return;
+  }
+  // Collapse any other expanded row.
+  tbody.querySelectorAll('tr.detail-row').forEach(r => r.remove());
+  expandedId = feedbackId;
+
+  const detailTr = document.createElement('tr');
+  detailTr.className = 'detail-row';
+  detailTr.dataset.detailFor = feedbackId;
+  detailTr.innerHTML = `<td colspan="6" style="color:var(--muted);font-size:0.85rem;">Loading...</td>`;
+  rowEl.after(detailTr);
+
+  try {
+    const bundle = await fetchBundle(feedbackId);
+    detailTr.innerHTML = `<td colspan="6">
+      <dl class="detail-meta">
+        <dt>Feedback ID</dt><dd>${escHtml(bundle.manifest.feedback_id)}</dd>
+        <dt>Adjuster</dt><dd>${escHtml(bundle.manifest.adjuster_id)}</dd>
+        <dt>Captured</dt><dd>${formatDate(bundle.manifest.captured_at)}</dd>
+        <dt>Notes</dt><dd>${escHtml(bundle.manifest.notes || '(none)')}</dd>
+      </dl>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h3>Predicted (Model Output)</h3>
+          <pre>${escHtml(JSON.stringify(bundle.predicted, null, 2))}</pre>
+        </div>
+        <div class="detail-section">
+          <h3>Corrected (Adjuster)</h3>
+          <pre>${escHtml(JSON.stringify(bundle.corrected, null, 2))}</pre>
+        </div>
+      </div>
+    </td>`;
+  } catch (err) {
+    detailTr.innerHTML = `<td colspan="6" style="color:#991b1b;">Failed to load bundle: ${escHtml(err.message)}</td>`;
+  }
+}
+
+async function loadPage() {
+  try {
+    const bundles = await fetchBundles(currentOffset, PAGE_SIZE);
+    const tbody = document.getElementById('feedback-body');
+    const emptyMsg = document.getElementById('empty-msg');
+    const loadMore = document.getElementById('load-more');
+
+    if (currentOffset === 0 && bundles.length === 0) {
+      emptyMsg.style.display = '';
+      document.getElementById('feedback-table').style.display = 'none';
+      loadMore.style.display = 'none';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    document.getElementById('feedback-table').style.display = '';
+
+    bundles.forEach(b => tbody.appendChild(renderRow(b)));
+    currentOffset += bundles.length;
+    loadMore.style.display = bundles.length < PAGE_SIZE ? 'none' : '';
+  } catch (err) {
+    setStatus('error', 'Failed to load feedback: ' + err.message);
+  }
+}
+
+document.getElementById('load-more').addEventListener('click', loadPage);
+loadPage();
+</script>
+</body>
+</html>
