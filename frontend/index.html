@@ -1193,7 +1193,15 @@ function renderReport(filename, fileUrl, rpt) {
     userSpan.textContent = savedUser;
   }
 
-  initMsal();
+  // Wait for MSAL script to load before initializing.
+  if (typeof msal !== 'undefined') {
+    initMsal();
+  } else {
+    const msalScript = document.querySelector('script[src*="msal-browser"]');
+    if (msalScript) {
+      msalScript.addEventListener('load', initMsal);
+    }
+  }
 })();
 </script>
 </body>
