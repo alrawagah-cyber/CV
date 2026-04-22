@@ -40,9 +40,9 @@ DEFAULT_TARGETS: dict[str, str] = {
     # ONNX exports (optional — fetcher tolerates missing blobs)
     "layer1/best.onnx": "checkpoints/layer1/best.onnx",
     "layer2/best.onnx": "checkpoints/layer2/best.onnx",
-    "layer2/best.onnx.data": "checkpoints/layer2/best.onnx.data",
+    "layer2/best.onnx.data": "checkpoints/layer2/layer2_damage.onnx.data",
     "layer3/best.onnx": "checkpoints/layer3/best.onnx",
-    "layer3/best.onnx.data": "checkpoints/layer3/best.onnx.data",
+    "layer3/best.onnx.data": "checkpoints/layer3/layer3_severity.onnx.data",
 }
 
 
