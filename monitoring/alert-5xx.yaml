@@ -1,0 +1,48 @@
+# Cloud Monitoring alert: fires when Cloud Run 5xx error ratio > 5%
+# over a 5-minute window. Sends email to alrawagah@melon.sa.
+#
+# Apply:
+#   gcloud monitoring policies create --from-file=monitoring/alert-5xx.yaml
+
+displayName: "Car Damage API — 5xx Error Rate > 5%"
+documentation:
+  content: |
+    The car-damage-api Cloud Run service returned more than 5% server errors
+    (HTTP 5xx) in a 5-minute window. Check Cloud Logging for the request IDs.
+
+    Dashboard: https://console.cloud.google.com/run/detail/me-central2/car-damage-api/logs
+  mimeType: text/markdown
+
+combiner: OR
+enabled: true
+
+conditions:
+  - displayName: "5xx ratio on car-damage-api"
+    conditionThreshold:
+      filter: >-
+        resource.type = "cloud_run_revision"
+        AND resource.labels.service_name = "car-damage-api"
+        AND metric.type = "run.googleapis.com/request_count"
+        AND metric.labels.response_code_class = "5xx"
+      aggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+      denominatorFilter: >-
+        resource.type = "cloud_run_revision"
+        AND resource.labels.service_name = "car-damage-api"
+        AND metric.type = "run.googleapis.com/request_count"
+      denominatorAggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+      comparison: COMPARISON_GT
+      thresholdValue: 0.05
+      duration: 0s
+      trigger:
+        count: 1
+
+notificationChannels: []
+# After creating, add a notification channel:
+#   gcloud monitoring channels create --type=email --display-name="Melon Ops" --channel-labels=email_address=alrawagah@melon.sa
+#   Then add the channel ID to this policy.

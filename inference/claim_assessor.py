@@ -141,38 +141,56 @@ class ClaimAssessor:
         )
 
         logger.info("Loading Layer 2 (damage type)...")
-        self.damage_model = (
-            DamageTypeClassifier(
-                backbone=cfg.l2_backbone,
-                classes=cfg.l2_classes,
-                pretrained=cfg.l2_weights is None,  # if no weights provided, use pretrained backbone
+        l2_onnx = _onnx_path(cfg.l2_weights)
+        if l2_onnx:
+            from inference.onnx_runtime import OnnxDamageClassifier
+
+            self.damage_model = OnnxDamageClassifier(l2_onnx, cfg.l2_classes)
+            self._l2_is_baseline = False
+            self._l2_onnx = True
+        else:
+            self.damage_model = (
+                DamageTypeClassifier(
+                    backbone=cfg.l2_backbone,
+                    classes=cfg.l2_classes,
+                    pretrained=cfg.l2_weights is None,
+                )
+                .to(self.device)
+                .eval()
             )
-            .to(self.device)
-            .eval()
-        )
-        self._l2_is_baseline = cfg.l2_weights is None
-        if cfg.l2_weights:
-            logger.info("Loading Layer 2 weights from %s", cfg.l2_weights)
-            ckpt = torch.load(cfg.l2_weights, map_location=self.device)
-            state = ckpt.get("state_dict", ckpt)
-            self.damage_model.load_state_dict(state, strict=False)
+            self._l2_is_baseline = cfg.l2_weights is None
+            self._l2_onnx = False
+            if cfg.l2_weights:
+                logger.info("Loading Layer 2 weights from %s", cfg.l2_weights)
+                ckpt = torch.load(cfg.l2_weights, map_location=self.device)
+                state = ckpt.get("state_dict", ckpt)
+                self.damage_model.load_state_dict(state, strict=False)
 
         logger.info("Loading Layer 3 (severity)...")
-        self.severity_model = (
-            SeverityAssessor(
-                backbone=cfg.l3_backbone,
-                grades=cfg.l3_grades,
-                pretrained=cfg.l3_weights is None,
+        l3_onnx = _onnx_path(cfg.l3_weights)
+        if l3_onnx:
+            from inference.onnx_runtime import OnnxSeverityAssessor
+
+            self.severity_model = OnnxSeverityAssessor(l3_onnx, cfg.l3_grades)
+            self._l3_is_baseline = False
+            self._l3_onnx = True
+        else:
+            self.severity_model = (
+                SeverityAssessor(
+                    backbone=cfg.l3_backbone,
+                    grades=cfg.l3_grades,
+                    pretrained=cfg.l3_weights is None,
+                )
+                .to(self.device)
+                .eval()
             )
-            .to(self.device)
-            .eval()
-        )
-        self._l3_is_baseline = cfg.l3_weights is None
-        if cfg.l3_weights:
-            logger.info("Loading Layer 3 weights from %s", cfg.l3_weights)
-            ckpt = torch.load(cfg.l3_weights, map_location=self.device)
-            state = ckpt.get("state_dict", ckpt)
-            self.severity_model.load_state_dict(state, strict=False)
+            self._l3_is_baseline = cfg.l3_weights is None
+            self._l3_onnx = False
+            if cfg.l3_weights:
+                logger.info("Loading Layer 3 weights from %s", cfg.l3_weights)
+                ckpt = torch.load(cfg.l3_weights, map_location=self.device)
+                state = ckpt.get("state_dict", ckpt)
+                self.severity_model.load_state_dict(state, strict=False)
 
         # Sanity: report uses "pretrained_baseline" if *either* classifier is not fine-tuned
         self.pretrained_baseline = self._l2_is_baseline or self._l3_is_baseline
@@ -246,8 +264,8 @@ class ClaimAssessor:
 
             l2_probs_list: list[np.ndarray] = []
             for chunk in chunked(l2_input, self.cfg.batch_size):
-                p = self.damage_model.predict_proba(chunk).cpu().numpy()
-                l2_probs_list.append(p)
+                p = self.damage_model.predict_proba(chunk)
+                l2_probs_list.append(p.cpu().numpy() if hasattr(p, "cpu") else np.asarray(p))
             l2_probs = (
                 np.concatenate(l2_probs_list, axis=0)
                 if l2_probs_list
@@ -309,3 +327,14 @@ def _derive_image_id(src: Any, img: np.ndarray) -> str:
         return Path(str(src)).name
     h = hashlib.sha1(img.tobytes()[:4096]).hexdigest()[:12]
     return f"image_{h}"
+
+
+def _onnx_path(pt_weights: str | None) -> Path | None:
+    """If a `.onnx` sibling exists next to the `.pt` weights, return it."""
+    if not pt_weights:
+        return None
+    onnx = Path(pt_weights).with_suffix(".onnx")
+    if onnx.exists():
+        logger.info("Found ONNX model at %s — using ONNX Runtime for inference.", onnx)
+        return onnx
+    return None
