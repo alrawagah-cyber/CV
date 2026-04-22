@@ -208,6 +208,57 @@
 
   /* Footer */
   footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 2rem 1rem; border-top: 1px solid var(--border); background: #fff; }
+
+  /* Annotation mode */
+  .canvas-wrap.annotating { cursor: crosshair; }
+  .canvas-wrap.annotating canvas { cursor: crosshair; }
+  .feedback-bar .annotate-hint {
+    background: #fef3c7; color: #92400e; padding: 0.4rem 0.75rem;
+    border-radius: 6px; font-size: 0.8rem; display: none;
+  }
+  .feedback-bar.annotating .annotate-hint { display: inline-block; }
+  .part-card.missing { border-left: 3px solid var(--melon-green); background: #f0fdf4; }
+  .part-card.missing .missing-tag {
+    font-size: 0.7rem; color: var(--melon-green-dark); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-inline-start: 0.35rem;
+  }
+  .part-card .delete-missing {
+    background: transparent; border: none; color: var(--melon-red); cursor: pointer;
+    font-size: 0.9rem; padding: 0; margin-inline-start: auto;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    align-items: center; justify-content: center; z-index: 50; padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 14px; padding: 1.5rem;
+    width: 100%; max-width: 420px; box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+  .modal h3 { margin-bottom: 1rem; font-size: 1.1rem; }
+  .modal label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.3rem; margin-top: 0.75rem; }
+  .modal select, .modal input, .modal textarea {
+    width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 0.9rem; font-family: inherit;
+  }
+  .modal select:focus, .modal input:focus, .modal textarea:focus {
+    outline: none; border-color: var(--melon-green);
+  }
+  .modal .damage-checks { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .modal .damage-checks label {
+    display: inline-flex; align-items: center; gap: 0.3rem; margin: 0;
+    padding: 0.3rem 0.6rem; background: #fafaf9; border: 1px solid var(--border);
+    border-radius: 999px; cursor: pointer; font-size: 0.78rem; color: var(--text);
+  }
+  .modal .damage-checks label:has(input:checked) {
+    background: var(--melon-green); color: #fff; border-color: var(--melon-green);
+  }
+  .modal .damage-checks input { display: none; }
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;
+  }
 </style>
 </head>
 <body>
@@ -256,6 +307,40 @@
   <div id="results"></div>
 </main>
 
+<!-- Modal for annotating a newly drawn missing part -->
+<div class="modal-overlay" id="missing-modal">
+  <div class="modal">
+    <h3 data-i18n="modalTitle">Missing damaged part</h3>
+    <label for="missing-part" data-i18n="modalPart">Part</label>
+    <select id="missing-part">
+      <option value="" data-i18n="modalSelectPart">— select part —</option>
+    </select>
+
+    <label data-i18n="modalDamage">Damage types (select one or more)</label>
+    <div class="damage-checks" id="missing-damage"></div>
+
+    <label for="missing-severity" data-i18n="modalSeverity">Severity</label>
+    <select id="missing-severity">
+      <option value="" data-i18n="modalSelectOne">— select —</option>
+    </select>
+
+    <label for="missing-recommendation" data-i18n="modalRecommendation">Recommendation</label>
+    <select id="missing-recommendation">
+      <option value="" data-i18n="modalSelectOne">— select —</option>
+      <option value="repair" data-i18n="rec_repair">repair</option>
+      <option value="replace" data-i18n="rec_replace">replace</option>
+    </select>
+
+    <label for="missing-notes" data-i18n="modalNotes">Notes (optional)</label>
+    <textarea id="missing-notes" rows="2"></textarea>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" id="missing-cancel" data-i18n="modalCancel">Cancel</button>
+      <button class="btn btn-sm" id="missing-save" data-i18n="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   <span data-i18n="footer">© Melon Insurtech · Provided for Chubb</span> · <a href="/docs" target="_blank" data-i18n="apiDocs">API docs</a>
 </footer>
@@ -290,6 +375,20 @@ const I18N = {
     correct: "✓ Correct",
     actuallyClean: "Actually clean",
     rawJson: "▶ Raw JSON",
+    addMissing: "+ Add missing part",
+    cancelAnnotate: "Cancel",
+    drawHint: "Drag on the image to draw a box around the missing damaged part.",
+    modalTitle: "Missing damaged part",
+    modalPart: "Part",
+    modalDamage: "Damage types (select one or more)",
+    modalSeverity: "Severity",
+    modalRecommendation: "Recommendation",
+    modalNotes: "Notes (optional)",
+    modalSave: "Save",
+    modalCancel: "Cancel",
+    missingTag: "Added",
+    modalSelectPart: "— select part —",
+    modalSelectOne: "— select —",
     // Statuses
     settingsSaved: "Settings saved.",
     noApiKey: "No API key set. Click Settings and paste the key you received from Melon.",
@@ -350,6 +449,20 @@ const I18N = {
     correct: "✓ صحيح",
     actuallyClean: "سليم فعلاً",
     rawJson: "▶ JSON الخام",
+    addMissing: "+ إضافة قطعة مفقودة",
+    cancelAnnotate: "إلغاء",
+    drawHint: "اسحب فوق الصورة لرسم مربع حول القطعة المتضررة المفقودة.",
+    modalTitle: "قطعة متضررة مفقودة",
+    modalPart: "القطعة",
+    modalDamage: "نوع الضرر (اختر واحداً أو أكثر)",
+    modalSeverity: "شدّة الضرر",
+    modalRecommendation: "التوصية",
+    modalNotes: "ملاحظات (اختياري)",
+    modalSave: "حفظ",
+    modalCancel: "إلغاء",
+    missingTag: "مضاف",
+    modalSelectPart: "— اختر القطعة —",
+    modalSelectOne: "— اختر —",
     settingsSaved: "تم حفظ الإعدادات.",
     noApiKey: "لم يتم ضبط مفتاح API. اضغط على الإعدادات والصق المفتاح الذي استلمته من ميلون.",
     sending: "جاري إرسال {n} صورة...",
@@ -427,6 +540,72 @@ document.getElementById('lang-toggle').addEventListener('click', () => {
   });
 });
 applyLanguage(CUR_LANG);
+
+/* ------------------------------------------------------------------ */
+/*  Vocabularies (must match server-side class_constants.py)           */
+/* ------------------------------------------------------------------ */
+const PART_LIST = [
+  'bumper','hood','fender','door','windshield','headlight','taillight',
+  'mirror','trunk','roof','quarter_panel','grille','wheel',
+];
+const DAMAGE_LIST = [
+  'dent','scratch','crack','shatter','tear','deformation',
+  'paint_loss','puncture','misalignment',
+];
+const SEVERITY_LIST = ['minor','moderate','severe','total_loss'];
+
+/* ------------------------------------------------------------------ */
+/*  Missing-part modal (one shared, reused by every report)            */
+/* ------------------------------------------------------------------ */
+function populateMissingModal() {
+  const partSel = document.getElementById('missing-part');
+  const dmgBox = document.getElementById('missing-damage');
+  const sevSel = document.getElementById('missing-severity');
+  const recSel = document.getElementById('missing-recommendation');
+  if (!partSel) return;
+  partSel.innerHTML = `<option value="">${t('modalSelectPart')}</option>` +
+    PART_LIST.map(p => `<option value="${p}">${t(`part_${p}`) || p}</option>`).join('');
+  dmgBox.innerHTML = DAMAGE_LIST.map(d =>
+    `<label><input type="checkbox" value="${d}">${t(`dmg_${d}`) || d}</label>`).join('');
+  sevSel.innerHTML = `<option value="">${t('modalSelectOne')}</option>` +
+    SEVERITY_LIST.map(s => `<option value="${s}">${t(`grade_${s}`) || s}</option>`).join('');
+  recSel.innerHTML = `<option value="">${t('modalSelectOne')}</option>` +
+    `<option value="repair">${t('rec_repair')}</option>` +
+    `<option value="replace">${t('rec_replace')}</option>`;
+}
+populateMissingModal();
+
+// Re-translate modal contents when the language changes.
+document.getElementById('lang-toggle').addEventListener('click', populateMissingModal);
+
+let _modalResolver = null;
+function openMissingModal() {
+  document.getElementById('missing-part').value = '';
+  document.getElementById('missing-severity').value = '';
+  document.getElementById('missing-recommendation').value = '';
+  document.getElementById('missing-notes').value = '';
+  document.querySelectorAll('#missing-damage input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('missing-modal').classList.add('open');
+  return new Promise(resolve => { _modalResolver = resolve; });
+}
+function closeMissingModal(result) {
+  document.getElementById('missing-modal').classList.remove('open');
+  if (_modalResolver) { _modalResolver(result); _modalResolver = null; }
+}
+document.getElementById('missing-cancel').onclick = () => closeMissingModal(null);
+document.getElementById('missing-save').onclick = () => {
+  const part = document.getElementById('missing-part').value;
+  if (!part) { return; }
+  const damage_types = [...document.querySelectorAll('#missing-damage input:checked')].map(cb => cb.value);
+  closeMissingModal({
+    part,
+    damage_types,
+    primary_damage_type: damage_types[0] || null,
+    severity: document.getElementById('missing-severity').value || null,
+    recommendation: document.getElementById('missing-recommendation').value || null,
+    adjuster_notes: document.getElementById('missing-notes').value.trim() || null,
+  });
+};
 
 /* ------------------------------------------------------------------ */
 /*  Configuration (persisted in localStorage)                          */
@@ -594,7 +773,12 @@ function renderReport(filename, fileUrl, rpt) {
         <div class="parts-list"></div>
         <div class="feedback-bar">
           <div class="hint">${t('hint')}</div>
-          <button class="btn btn-ghost btn-sm submit-fb">${t('submitFeedback')}</button>
+          <div class="annotate-hint">${t('drawHint')}</div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm add-missing">${t('addMissing')}</button>
+            <button class="btn btn-ghost btn-sm cancel-annotate" style="display:none;">${t('cancelAnnotate')}</button>
+            <button class="btn btn-ghost btn-sm submit-fb">${t('submitFeedback')}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -610,15 +794,18 @@ function renderReport(filename, fileUrl, rpt) {
 
   /* Feedback state kept local per-report card. */
   const feedbackState = new Map(); // index -> 'correct' | 'clean'
+  const missingParts = []; // {part, bbox_xyxy_px:[x1,y1,x2,y2], damage_types, severity, ...}
 
   /* Draw image + bboxes onto canvas */
   const img = new Image();
+  let drawnOnce = false;
   img.onload = () => {
     const W = img.naturalWidth, H = img.naturalHeight;
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
     drawAllBoxes(ctx, rpt, null);
+    drawnOnce = true;
   };
   img.src = fileUrl;
 
@@ -633,6 +820,18 @@ function renderReport(filename, fileUrl, rpt) {
       ctx.font = 'bold 28px system-ui, sans-serif';
       ctx.fillStyle = color;
       ctx.fillText(t(`part_${p.part}`) || p.part, x1 + 6, y1 + 32);
+    });
+    // Missing (adjuster-added) parts — distinct dashed green style.
+    missingParts.forEach(mp => {
+      const [x1, y1, x2, y2] = mp.bbox_xyxy_px;
+      ctx.strokeStyle = '#16a34a';
+      ctx.lineWidth = 5;
+      ctx.setLineDash([14, 8]);
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      ctx.setLineDash([]);
+      ctx.font = 'bold 28px system-ui, sans-serif';
+      ctx.fillStyle = '#16a34a';
+      ctx.fillText('+ ' + (t(`part_${mp.part}`) || mp.part), x1 + 6, y1 + 32);
     });
   }
 
@@ -690,9 +889,131 @@ function renderReport(filename, fileUrl, rpt) {
     }
   });
 
+  /* ---------- Annotation mode: drag on canvas to add a missing part ---------- */
+  const wrap = card.querySelector('.canvas-wrap');
+  const bar = card.querySelector('.feedback-bar');
+  const addBtn = card.querySelector('.add-missing');
+  const cancelBtn = card.querySelector('.cancel-annotate');
+  let annotating = false;
+  let dragStart = null;
+  let previewRect = null;
+
+  function setAnnotating(on) {
+    annotating = on;
+    wrap.classList.toggle('annotating', on);
+    bar.classList.toggle('annotating', on);
+    addBtn.style.display = on ? 'none' : '';
+    cancelBtn.style.display = on ? '' : 'none';
+  }
+
+  addBtn.onclick = () => setAnnotating(true);
+  cancelBtn.onclick = () => { setAnnotating(false); dragStart = null; previewRect = null; redraw(); };
+
+  function clientToImage(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: Math.max(0, Math.min(canvas.width,  (e.clientX - rect.left) * scaleX)),
+      y: Math.max(0, Math.min(canvas.height, (e.clientY - rect.top)  * scaleY)),
+    };
+  }
+
+  function redraw(preview) {
+    if (!drawnOnce) return;
+    const ctx = canvas.getContext('2d');
+    drawAllBoxes(ctx, rpt, null);
+    if (preview) {
+      ctx.strokeStyle = '#16a34a';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([10, 6]);
+      ctx.strokeRect(preview.x1, preview.y1, preview.x2 - preview.x1, preview.y2 - preview.y1);
+      ctx.setLineDash([]);
+    }
+  }
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (!annotating) return;
+    e.preventDefault();
+    const p = clientToImage(e);
+    dragStart = p;
+    previewRect = { x1: p.x, y1: p.y, x2: p.x, y2: p.y };
+  });
+  canvas.addEventListener('mousemove', (e) => {
+    if (!annotating || !dragStart) return;
+    const p = clientToImage(e);
+    previewRect = {
+      x1: Math.min(dragStart.x, p.x), y1: Math.min(dragStart.y, p.y),
+      x2: Math.max(dragStart.x, p.x), y2: Math.max(dragStart.y, p.y),
+    };
+    redraw(previewRect);
+  });
+  canvas.addEventListener('mouseup', async (e) => {
+    if (!annotating || !dragStart) return;
+    const p = clientToImage(e);
+    const rect = {
+      x1: Math.round(Math.min(dragStart.x, p.x)), y1: Math.round(Math.min(dragStart.y, p.y)),
+      x2: Math.round(Math.max(dragStart.x, p.x)), y2: Math.round(Math.max(dragStart.y, p.y)),
+    };
+    dragStart = null;
+    if ((rect.x2 - rect.x1) < 10 || (rect.y2 - rect.y1) < 10) {
+      // Too small — treat as misclick, stay in annotation mode.
+      previewRect = null; redraw();
+      return;
+    }
+    redraw(rect);
+    // Open the modal; user picks part + damage metadata.
+    const meta = await openMissingModal();
+    setAnnotating(false);
+    previewRect = null;
+    if (meta) {
+      missingParts.push({
+        ...meta,
+        bbox_xyxy_px: [rect.x1, rect.y1, rect.x2, rect.y2],
+      });
+      renderMissingList();
+    }
+    redraw();
+  });
+
+  /* Render the added-parts list inline at the bottom of parts-list. */
+  function renderMissingList() {
+    // Remove existing missing cards
+    partsList.querySelectorAll('.part-card.missing').forEach(e => e.remove());
+    missingParts.forEach((mp, j) => {
+      const card_ = document.createElement('div');
+      card_.className = 'part-card missing';
+      const partLabel = t(`part_${mp.part}`) || mp.part;
+      const gradeLabel = mp.severity ? (t(`grade_${mp.severity}`) || mp.severity) : '';
+      const recLabel = mp.recommendation ? (t(`rec_${mp.recommendation}`) || mp.recommendation) : '';
+      card_.innerHTML = `
+        <div class="part-card-row">
+          <div>
+            <strong>${partLabel}</strong>
+            <span class="missing-tag">${t('missingTag')}</span>
+          </div>
+          <div>
+            ${mp.severity ? `<span class="badge badge-${mp.severity}">${gradeLabel}</span>` : ''}
+            ${mp.recommendation ? ` <span class="badge badge-${mp.recommendation}">${recLabel}</span>` : ''}
+            <button class="delete-missing" title="Remove">×</button>
+          </div>
+        </div>
+        ${mp.damage_types.length ? `<div class="damage-list">${mp.damage_types.map(d =>
+          `<span class="damage-chip">${t(`dmg_${d}`) || d}</span>`).join('')}</div>` : ''}
+        ${mp.adjuster_notes ? `<div class="meta" style="margin-top:0.3rem;">${mp.adjuster_notes}</div>` : ''}
+      `;
+      card_.querySelector('.delete-missing').onclick = () => {
+        missingParts.splice(j, 1);
+        renderMissingList();
+        redraw();
+      };
+      partsList.appendChild(card_);
+    });
+  }
+
   /* Submit feedback handler */
   card.querySelector('.submit-fb').onclick = async () => {
-    if (feedbackState.size === 0) {
+    if (feedbackState.size === 0 && missingParts.length === 0) {
       setStatus('info', t('nothingMarked'));
       return;
     }
@@ -724,13 +1045,27 @@ function renderReport(filename, fileUrl, rpt) {
       }
     });
 
+    // Append adjuster-added missing parts as damaged=true entries.
+    missingParts.forEach(mp => {
+      corrected_parts.push({
+        part: mp.part,
+        bbox_xyxy_px: mp.bbox_xyxy_px,
+        damaged: true,
+        damage_types: mp.damage_types,
+        primary_damage_type: mp.primary_damage_type,
+        severity: mp.severity,
+        recommendation: mp.recommendation,
+        adjuster_notes: mp.adjuster_notes || 'Added via Melon UI (missing detection)',
+      });
+    });
+
     const body = {
       claim_id: `DEMO-${filename}-${Date.now()}`,
       adjuster_id: 'melon-ui',
       original_report: rpt,
       corrected_parts,
       corrected_overall_assessment: rpt.overall_assessment,
-      notes: 'Submitted via Melon demo UI',
+      notes: `Submitted via Melon demo UI${missingParts.length ? ` (${missingParts.length} missing part(s) added)` : ''}`,
     };
     try {
       const res = await fetch(`${getApiUrl()}/feedback`, {
